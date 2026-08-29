@@ -14,7 +14,7 @@ if ('serviceWorker' in navigator) {
  navigator.serviceWorker.register('/sw.js');
  }
 // 2. Ambil data dari Apps Script Web App
-const GAS_ENDPOINT = 'https://script.google.com/macros/s/AKfy.../exec';
+const GAS_ENDPOINT = 'https://script.google.com/macros/s/AKfycbxbsw18EFULmVdtE7ubyPd5RG0emHvg3c69TeFZnl2l3380kAhyskGUvrs3NOhHhj0org/exec';
  fetch(GAS_ENDPOINT)
  .then(res => res.json())
  .then(data => {
