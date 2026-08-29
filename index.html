@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+ <meta charset="UTF-8">
+ <meta name="viewport" content="width=device-width, initial-scale=1.0">
+ <link rel="manifest" href="/manifest.json">
+ <title>GAS PWA App</title>
+</head>
+<body>
+ <div id="app">Memuat data...</div>
+ <script>
+// 1. Registrasi Service Worker
+if ('serviceWorker' in navigator) {
+ navigator.serviceWorker.register('/sw.js');
+ }
+// 2. Ambil data dari Apps Script Web App
+const GAS_ENDPOINT = 'https://script.google.com/macros/s/AKfy.../exec';
+ fetch(GAS_ENDPOINT)
+ .then(res => res.json())
+ .then(data => {
+ document.getElementById('app').innerText = data.message;
+ })
+ .catch(err => {
+ document.getElementById('app').innerText = 'Gagal terhubung.';
+ });
+ </script>
+</body>
+</html>
