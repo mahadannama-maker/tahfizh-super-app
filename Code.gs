@@ -6,25 +6,16 @@
 function setupSheet() {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   
-  // 1. Sheet Santri
   let sheetSantri = getSantriSheet(ss);
   if (!sheetSantri) {
     sheetSantri = ss.insertSheet("Santri");
     sheetSantri.appendRow(["ID Santri", "Nama Santri", "Kelas/Halaqah", "Target Juz", "Status"]);
-    sheetSantri.getRange(1, 1, 1, 5).setFontWeight("bold").setBackground("#d1fae5");
-    sheetSantri.appendRow(["STR001", "Ahmad Fauzi", "Halaqah Al-Fatih", "30", "Aktif"]);
-    sheetSantri.appendRow(["STR002", "Muhammad Zaki", "Halaqah Al-Fatih", "30", "Aktif"]);
-    sheetSantri.appendRow(["STR003", "Siti Aisyah", "Halaqah An-Nur", "29", "Aktif"]);
-    sheetSantri.appendRow(["STR004", "Umar Faruq", "Halaqah An-Nur", "30", "Aktif"]);
   }
 
-  // 2. Sheet Setoran
   let sheetSetoran = getSetoranSheet(ss);
   if (!sheetSetoran) {
     sheetSetoran = ss.insertSheet("Setoran");
     sheetSetoran.appendRow(["ID Setoran", "Tanggal", "Nama Santri", "Surah", "Ayat Mula", "Ayat Akhir", "Nilai/Predikat", "Catatan Ustadz", "Penguji"]);
-    sheetSetoran.getRange(1, 1, 1, 9).setFontWeight("bold").setBackground("#d1fae5");
-    sheetSetoran.appendRow(["STR-1001", new Date().toLocaleDateString("id-ID"), "Ahmad Fauzi", "An-Naba'", 1, 40, "Mumtaz (A)", "Lancar, pertahankan tajwid", "Ustadz H. Abdullah"]);
   }
 }
 
@@ -36,11 +27,43 @@ function getSetoranSheet(ss) {
   return ss.getSheetByName("setoran") || ss.getSheetByName("Setoran") || ss.getSheetByName("SETORAN");
 }
 
+function getUsersSheet(ss) {
+  return ss.getSheetByName("users") || ss.getSheetByName("Users") || ss.getSheetByName("USERS");
+}
+
 function doGet(e) {
   try {
     const ss = SpreadsheetApp.getActiveSpreadsheet();
     
-    // Ambil Data Santri
+    // 1. Ambil Data Users (Authentication)
+    const sheetUsers = getUsersSheet(ss);
+    const usersData = [];
+    if (sheetUsers) {
+      const rows = sheetUsers.getDataRange().getValues();
+      const headers = rows[0] ? rows[0].map(h => String(h).toLowerCase().trim()) : [];
+
+      const idxId = headers.findIndex(h => h === "id");
+      const idxNama = headers.findIndex(h => h === "nama");
+      const idxNip = headers.findIndex(h => h.includes("nip") || h.includes("nisn") || h.includes("username"));
+      const idxPwd = headers.findIndex(h => h.includes("password") || h.includes("pass"));
+      const idxRole = headers.findIndex(h => h.includes("role"));
+      const idxKelas = headers.findIndex(h => h.includes("kelas") || h.includes("halaqah"));
+
+      for (let i = 1; i < rows.length; i++) {
+        if (rows[i][0] || (idxNama !== -1 && rows[i][idxNama])) {
+          usersData.push({
+            id: String(idxId !== -1 ? rows[i][idxId] : rows[i][0]),
+            nama: String(idxNama !== -1 ? rows[i][idxNama] : rows[i][1]),
+            nip_nisn: String(idxNip !== -1 ? rows[i][idxNip] : rows[i][2]),
+            password: String(idxPwd !== -1 ? rows[i][idxPwd] : rows[i][3]),
+            role: String(idxRole !== -1 ? rows[i][idxRole] : rows[i][4]).toLowerCase(),
+            kelas: String(idxKelas !== -1 ? rows[i][idxKelas] : rows[i][5])
+          });
+        }
+      }
+    }
+
+    // 2. Ambil Data Santri
     const sheetSantri = getSantriSheet(ss);
     const santriData = [];
     if (sheetSantri) {
@@ -52,7 +75,7 @@ function doGet(e) {
       const idxTarget = headers.findIndex(h => h.includes("target") || h.includes("juz"));
 
       for (let i = 1; i < rows.length; i++) {
-        if (rows[i][0] || rows[i][idxNama]) {
+        if (rows[i][0] || (idxNama !== -1 && rows[i][idxNama])) {
           santriData.push({
             id: rows[i][0] || "STR" + i,
             nama: idxNama !== -1 ? rows[i][idxNama] : rows[i][1],
@@ -64,7 +87,7 @@ function doGet(e) {
       }
     }
 
-    // Ambil Data Setoran
+    // 3. Ambil Data Setoran
     const sheetSetoran = getSetoranSheet(ss);
     const setoranData = [];
     if (sheetSetoran) {
@@ -81,7 +104,7 @@ function doGet(e) {
       const idxCatatan = headers.findIndex(h => h.includes("catatan"));
       const idxPenguji = headers.findIndex(h => h.includes("penguji") || h.includes("ustadz"));
 
-      for (let i = rows.length - 1; i >= 1; i--) { // Urutkan terbaru di atas
+      for (let i = rows.length - 1; i >= 1; i--) {
         if (rows[i][0] || (idxNama !== -1 && rows[i][idxNama])) {
           const tgl = idxTanggal !== -1 ? rows[i][idxTanggal] : rows[i][1];
           setoranData.push({
@@ -103,9 +126,11 @@ function doGet(e) {
       status: "success",
       summary: {
         totalSantri: santriData.length,
+        totalUsers: usersData.length,
         totalSetoran: setoranData.length,
         lastUpdate: new Date().toISOString()
       },
+      users: usersData,
       santri: santriData,
       setoran: setoranData
     };
@@ -153,7 +178,7 @@ function doPost(e) {
     // Deteksi Struktur Kolom Sheet
     const headers = sheetSetoran.getRange(1, 1, 1, sheetSetoran.getLastColumn()).getValues()[0].map(h => String(h).toLowerCase().trim());
     
-    // Jika format sheet MJ Official (id_setoran, tanggal, waktu, nisn, nama, kelas, juz, surat, ayat_dari, ayat_sampai, nilai, status, poin, catatan)
+    // Jika format sheet MJ Official
     if (headers.includes("surat") || headers.includes("ayat_dari") || headers.includes("nisn")) {
       const newRow = new Array(headers.length).fill("-");
       
@@ -174,7 +199,7 @@ function doPost(e) {
 
       sheetSetoran.appendRow(newRow);
     } else {
-      // Format Standar Tahfizh Super App
+      // Format Standar
       sheetSetoran.appendRow([
         idSetoran,
         tanggal,

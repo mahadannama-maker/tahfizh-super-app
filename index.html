@@ -35,7 +35,7 @@
       <div class="absolute -left-16 -bottom-16 w-64 h-64 rounded-full bg-emerald-500/20 blur-2xl pointer-events-none"></div>
 
       <!-- Login Header -->
-      <div class="text-center pt-8 space-y-3 z-10">
+      <div class="text-center pt-6 space-y-2 z-10">
         <div class="w-16 h-16 rounded-2xl bg-white/20 backdrop-blur-md flex items-center justify-center text-3xl mx-auto border border-white/30 shadow-inner">
           📖
         </div>
@@ -44,51 +44,32 @@
       </div>
 
       <!-- Login Form Box -->
-      <div class="bg-white text-slate-800 rounded-3xl p-5 shadow-2xl space-y-5 my-auto z-10 border border-slate-100">
+      <div class="bg-white text-slate-800 rounded-3xl p-5 shadow-2xl space-y-4 my-auto z-10 border border-slate-100">
         <div>
-          <h2 class="font-bold text-slate-800 text-base text-center">Masuk ke Aplikasi</h2>
-          <p class="text-xs text-slate-500 text-center mt-0.5">Pilih peran/role Anda di bawah ini:</p>
+          <h2 class="font-bold text-slate-800 text-base text-center">Masuk ke Akun Anda</h2>
+          <p class="text-xs text-slate-500 text-center mt-0.5">Gunakan NIP / NISN / Username & Password</p>
         </div>
 
-        <!-- Role Select Cards -->
-        <div class="grid grid-cols-3 gap-2">
-          <!-- Role 1: Super Admin -->
-          <div data-role="admin" class="role-card selected p-3 rounded-2xl border-2 border-slate-200 text-center space-y-1">
-            <span class="text-xl">👑</span>
-            <div class="font-bold text-[11px] text-slate-800 leading-tight">Super Admin</div>
-            <div class="text-[9px] text-slate-400">Akses Penuh</div>
+        <form id="form-login" class="space-y-3.5">
+          <!-- Username / NIP / NISN Input -->
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 mb-1">NIP / NISN / Username *</label>
+            <input type="text" id="login-username" required placeholder="Contoh: u.abdullah / 8001 / admin" class="w-full bg-slate-50 border border-slate-300 text-slate-800 text-xs rounded-xl p-3 focus:ring-2 focus:ring-teal-500 focus:outline-none">
           </div>
 
-          <!-- Role 2: Guru / Ustadz -->
-          <div data-role="guru" class="role-card p-3 rounded-2xl border-2 border-slate-200 text-center space-y-1">
-            <span class="text-xl">👨‍🏫</span>
-            <div class="font-bold text-[11px] text-slate-800 leading-tight">Guru / Ustadz</div>
-            <div class="text-[9px] text-slate-400">Input Hafalan</div>
-          </div>
-
-          <!-- Role 3: Orang Tua / Santri -->
-          <div data-role="santri" class="role-card p-3 rounded-2xl border-2 border-slate-200 text-center space-y-1">
-            <span class="text-xl">👨‍👩‍👧</span>
-            <div class="font-bold text-[11px] text-slate-800 leading-tight">Orang Tua</div>
-            <div class="text-[9px] text-slate-400">Lihat Progress</div>
-          </div>
-        </div>
-
-        <form id="form-login" class="space-y-4 pt-2">
-          <!-- Password Input (Default for Admin & Guru) -->
-          <div id="group-password">
-            <label class="block text-xs font-semibold text-slate-700 mb-1">Password Masuk</label>
-            <input type="password" id="login-password" value="123456" placeholder="Masukkan password (123456)" class="w-full bg-slate-50 border border-slate-300 text-slate-800 text-xs rounded-xl p-3 focus:ring-2 focus:ring-teal-500 focus:outline-none">
+          <!-- Password Input -->
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 mb-1">Password *</label>
+            <input type="password" id="login-password" required value="123456" placeholder="Masukkan password" class="w-full bg-slate-50 border border-slate-300 text-slate-800 text-xs rounded-xl p-3 focus:ring-2 focus:ring-teal-500 focus:outline-none">
             <p class="text-[10px] text-slate-400 mt-1">Default password: <code class="font-mono text-teal-700">123456</code></p>
           </div>
 
-          <!-- Santri Select Input (Hidden for Admin & Guru, Shown for Santri) -->
-          <div id="group-santri-select" class="hidden">
-            <label class="block text-xs font-semibold text-slate-700 mb-1">Pilih Nama Santri / Anak *</label>
-            <select id="login-santri-select" class="w-full bg-slate-50 border border-slate-300 text-slate-800 text-xs rounded-xl p-3 focus:ring-2 focus:ring-teal-500 focus:outline-none">
-              <option value="">-- Pilih Nama Santri / Anak --</option>
-            </select>
-            <p class="text-[10px] text-slate-400 mt-1">Orang tua / Santri tidak memerlukan password.</p>
+          <!-- Info Roles Hint Box -->
+          <div class="bg-teal-50 border border-teal-100 p-3 rounded-xl text-[11px] text-slate-600 space-y-1">
+            <div class="font-semibold text-teal-800">💡 Contoh Penggunaan Login:</div>
+            <div>&bull; <strong>Super Admin</strong>: Username <code class="bg-white px-1 rounded text-teal-800">admin</code></div>
+            <div>&bull; <strong>Guru / Ustadz</strong>: Username <code class="bg-white px-1 rounded text-teal-800">u.abdullah</code> / <code class="bg-white px-1 rounded text-teal-800">121212</code></div>
+            <div>&bull; <strong>Orang Tua / Santri</strong>: NISN <code class="bg-white px-1 rounded text-teal-800">8001</code> / <code class="bg-white px-1 rounded text-teal-800">9003</code></div>
           </div>
 
           <button type="submit" class="w-full bg-teal-700 hover:bg-teal-800 text-white font-bold text-sm py-3.5 rounded-xl shadow-lg transition duration-200 flex items-center justify-center gap-2">
@@ -98,8 +79,8 @@
       </div>
 
       <!-- Login Footer -->
-      <div class="text-center text-[11px] text-teal-200 z-10 pb-4">
-        Tahfizh Super App PWA &bull; Sistem Monitoring Real-time
+      <div class="text-center text-[11px] text-teal-200 z-10 pb-2">
+        Tahfizh Super App PWA &bull; NIP/NISN Authentication
       </div>
     </div>
 
@@ -119,7 +100,7 @@
                 <span id="user-display-name" class="font-bold text-sm leading-tight">User</span>
                 <span id="user-role-badge" class="text-[10px] px-2 py-0.5 rounded-full font-semibold badge-role-admin">Role</span>
               </div>
-              <p class="text-[11px] text-teal-100 font-light">Tahfizh Super App</p>
+              <p id="user-display-sub" class="text-[11px] text-teal-100 font-light">Tahfizh Super App</p>
             </div>
           </div>
 
@@ -144,11 +125,11 @@
           <div class="bg-gradient-to-r from-teal-700 to-emerald-600 rounded-2xl p-5 text-white shadow-lg relative overflow-hidden">
             <div class="relative z-10 space-y-1">
               <span class="text-xs font-semibold uppercase tracking-wider text-teal-200">Dashboard Utama</span>
-              <h2 class="text-xl font-bold">Assalamu'alaikum</h2>
+              <h2 id="welcome-heading" class="text-xl font-bold">Assalamu'alaikum</h2>
               <p class="text-xs text-teal-100 font-light">Pantau progress hafalan santri secara praktis & cepat.</p>
             </div>
             <div class="mt-4 flex gap-2">
-              <button onclick="switchTab('input')" class="bg-white text-teal-800 hover:bg-teal-50 px-4 py-2 rounded-xl font-semibold text-xs transition shadow-sm flex items-center gap-1.5">
+              <button id="btn-quick-input" onclick="switchTab('input')" class="bg-white text-teal-800 hover:bg-teal-50 px-4 py-2 rounded-xl font-semibold text-xs transition shadow-sm flex items-center gap-1.5">
                 <span>➕</span> Input Setoran
               </button>
               <button onclick="switchTab('riwayat')" class="bg-teal-800/60 hover:bg-teal-800 text-white border border-white/20 px-4 py-2 rounded-xl font-medium text-xs transition">

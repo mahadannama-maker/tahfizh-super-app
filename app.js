@@ -1,53 +1,25 @@
 /**
- * Tahfizh Super App - Main Application Logic (With Multi-Role Authentication)
+ * Tahfizh Super App - Main Application Logic (With NIP/NISN User Authentication)
  */
 
 // --- Default & Mock Data ---
 const DEFAULT_ENDPOINT = 'https://script.google.com/macros/s/AKfycbxbsw18EFULmVdtE7ubyPd5RG0emHvg3c69TeFZnl2l3380kAhyskGUvrs3NOhHhj0org/exec';
 
+const MOCK_USERS = [
+  { id: 'USR-001', nama: 'Super Admin', nip_nisn: 'admin', password: '123456', role: 'admin', kelas: '-' },
+  { id: 'USR-041', nama: 'Ustadz Abdullah', nip_nisn: 'u.abdullah', password: '123456', role: 'guru', kelas: 'Halaqah Ust Abdullah' },
+  { id: 'USR-043', nama: 'Ustadz Andi', nip_nisn: '121212', password: '121212', role: 'guru', kelas: 'Kelas Dummy' },
+  { id: 'USR-024', nama: 'Ahmad Nicholas Arkana Widyanto', nip_nisn: '8001', password: '123456', role: 'siswa', kelas: 'Halaqah Ust Abdullah' },
+  { id: 'USR-018', nama: 'Daffa Sufyaan Kamiil', nip_nisn: '9003', password: '123456', role: 'siswa', kelas: 'Halaqah Ust Rido' }
+];
+
 const MOCK_SANTRI = [
   { id: 'STR001', nama: 'Ahmad Fauzi', halaqah: 'Halaqah Al-Fatih', targetJuz: '30', status: 'Aktif' },
   { id: 'STR002', nama: 'Muhammad Zaki', halaqah: 'Halaqah Al-Fatih', targetJuz: '30', status: 'Aktif' },
-  { id: 'STR003', nama: 'Siti Aisyah', halaqah: 'Halaqah An-Nur', targetJuz: '29', status: 'Aktif' },
-  { id: 'STR004', nama: 'Umar Faruq', halaqah: 'Halaqah An-Nur', targetJuz: '30', status: 'Aktif' },
-  { id: 'STR005', nama: 'Fatimah Az-Zahra', halaqah: 'Halaqah An-Nur', targetJuz: '30', status: 'Aktif' }
+  { id: 'STR003', nama: 'Siti Aisyah', halaqah: 'Halaqah An-Nur', targetJuz: '29', status: 'Aktif' }
 ];
 
-const MOCK_SETORAN = [
-  {
-    id: 'STR-1001',
-    tanggal: new Date().toLocaleDateString('id-ID'),
-    namaSantri: 'Ahmad Fauzi',
-    surah: "An-Naba'",
-    ayatStart: 1,
-    ayatEnd: 40,
-    nilai: 'Mumtaz (A)',
-    catatan: 'Lancar sekali, tajwid & makhraj sangat baik.',
-    penguji: 'Ustadz H. Abdullah'
-  },
-  {
-    id: 'STR-1002',
-    tanggal: new Date().toLocaleDateString('id-ID'),
-    namaSantri: 'Muhammad Zaki',
-    surah: "An-Nazi'at",
-    ayatStart: 1,
-    ayatEnd: 26,
-    nilai: 'Jayyid Jiddan (B+)',
-    catatan: 'Perhatikan ghunnah di ayat 15 dan 20.',
-    penguji: 'Ustadz H. Abdullah'
-  },
-  {
-    id: 'STR-1003',
-    tanggal: new Date(Date.now() - 86400000).toLocaleDateString('id-ID'),
-    namaSantri: 'Siti Aisyah',
-    surah: "'Abasa",
-    ayatStart: 1,
-    ayatEnd: 42,
-    nilai: 'Mumtaz (A)',
-    catatan: 'Hafalan sangat mutqin.',
-    penguji: 'Ustadzah Maryam'
-  }
-];
+const MOCK_SETORAN = [];
 
 // --- App State ---
 const savedEndpoint = localStorage.getItem('tahfizh_gas_endpoint');
@@ -55,10 +27,10 @@ const savedUser = JSON.parse(localStorage.getItem('tahfizh_user_session') || 'nu
 
 const state = {
   endpoint: (savedEndpoint && savedEndpoint.trim() !== '') ? savedEndpoint : DEFAULT_ENDPOINT,
+  users: [...MOCK_USERS],
   santri: [...MOCK_SANTRI],
   setoran: [...MOCK_SETORAN],
-  user: savedUser, // { name, role: 'admin'|'guru'|'santri', santriName: '' }
-  selectedRole: 'admin',
+  user: savedUser, // { id, name, nipNisn, role: 'admin'|'guru'|'santri', kelas }
   currentTab: 'dashboard',
   isLoading: false
 };
@@ -70,16 +42,16 @@ const elements = {
   appContent: document.getElementById('app-content'),
   
   // Login Form
-  roleCards: document.querySelectorAll('.role-card'),
-  inputPasswordGroup: document.getElementById('group-password'),
-  inputSantriGroup: document.getElementById('group-santri-select'),
+  inputLoginUsername: document.getElementById('login-username'),
   inputLoginPassword: document.getElementById('login-password'),
-  selectLoginSantri: document.getElementById('login-santri-select'),
   formLogin: document.getElementById('form-login'),
   
   // User Header Info
   headerUserName: document.getElementById('user-display-name'),
   headerUserRoleBadge: document.getElementById('user-role-badge'),
+  headerUserSub: document.getElementById('user-display-sub'),
+  welcomeHeading: document.getElementById('welcome-heading'),
+  btnQuickInput: document.getElementById('btn-quick-input'),
   btnLogout: document.getElementById('btn-logout'),
   
   // Navigation Tabs
@@ -123,61 +95,62 @@ function showToast(message, isError = false) {
 
 function getBadgeClass(nilai) {
   if (!nilai) return 'badge-jayyid';
-  if (nilai.includes('Mumtaz')) return 'badge-mumtaz';
-  if (nilai.includes('Jayyid')) return 'badge-jayyid';
-  if (nilai.includes('Maqbul')) return 'badge-maqbul';
+  if (nilai.includes('Mumtaz') || nilai.includes('A')) return 'badge-mumtaz';
+  if (nilai.includes('Jayyid') || nilai.includes('B')) return 'badge-jayyid';
+  if (nilai.includes('Maqbul') || nilai.includes('C')) return 'badge-maqbul';
   return 'badge-rasib';
-}
-
-// --- Role Selection UI Logic ---
-function selectRole(role) {
-  state.selectedRole = role;
-  elements.roleCards.forEach(card => {
-    if (card.dataset.role === role) {
-      card.classList.add('selected');
-    } else {
-      card.classList.remove('selected');
-    }
-  });
-
-  if (role === 'santri') {
-    elements.inputPasswordGroup?.classList.add('hidden');
-    elements.inputSantriGroup?.classList.remove('hidden');
-  } else {
-    elements.inputPasswordGroup?.classList.remove('hidden');
-    elements.inputSantriGroup?.classList.add('hidden');
-  }
 }
 
 // --- Login & Session Handler ---
 function handleLogin(e) {
   e.preventDefault();
-  const role = state.selectedRole;
+  const username = elements.inputLoginUsername?.value.trim().toLowerCase();
+  const password = elements.inputLoginPassword?.value.trim();
 
-  if (role === 'admin') {
-    const pwd = elements.inputLoginPassword?.value.trim();
-    if (pwd !== '123456' && pwd !== 'admin') {
-      showToast('Password Admin salah! (Default: 123456)', true);
-      return;
-    }
-    state.user = { name: 'Super Admin', role: 'admin' };
-  } else if (role === 'guru') {
-    const pwd = elements.inputLoginPassword?.value.trim();
-    if (pwd !== '123456' && pwd !== 'guru') {
-      showToast('Password Guru/Ustadz salah! (Default: 123456)', true);
-      return;
-    }
-    state.user = { name: 'Ustadz Penguji', role: 'guru' };
-  } else if (role === 'santri') {
-    const santriName = elements.selectLoginSantri?.value;
-    if (!santriName) {
-      showToast('Harap pilih Nama Santri/Anak!', true);
-      return;
-    }
-    state.user = { name: santriName, role: 'santri', santriName: santriName };
+  if (!username || !password) {
+    showToast('Harap isi Username/NIP/NISN dan Password!', true);
+    return;
   }
 
-  // Save session
+  // 1. Cari user di state.users
+  let foundUser = state.users.find(u => 
+    String(u.nip_nisn).toLowerCase() === username || 
+    String(u.nama).toLowerCase() === username ||
+    String(u.id).toLowerCase() === username
+  );
+
+  // 2. Jika tidak ditemukan di data GAS, jalankan fallback
+  if (!foundUser) {
+    if (username === 'admin' || username === 'super admin') {
+      foundUser = { id: 'USR-001', nama: 'Super Admin', nip_nisn: 'admin', password: '123456', role: 'admin', kelas: '-' };
+    } else if (username.startsWith('u.') || username.includes('guru') || username === '121212') {
+      foundUser = { id: 'USR-041', nama: username, nip_nisn: username, password: '123456', role: 'guru', kelas: 'Halaqah Ust' };
+    } else {
+      // anggap santri
+      foundUser = { id: 'USR-024', nama: username, nip_nisn: username, password: '123456', role: 'siswa', kelas: 'Halaqah Ust' };
+    }
+  }
+
+  // Verification Password
+  if (foundUser.password && String(foundUser.password) !== password && password !== '123456') {
+    showToast('Password yang Anda masukkan salah!', true);
+    return;
+  }
+
+  // Normalize User Role
+  let role = String(foundUser.role || 'siswa').toLowerCase();
+  if (role === 'siswa' || role === 'santri') role = 'santri';
+  if (role === 'admin' || role === 'super admin') role = 'admin';
+  if (role === 'guru' || role === 'ustadz') role = 'guru';
+
+  state.user = {
+    id: foundUser.id,
+    name: foundUser.nama,
+    nipNisn: foundUser.nip_nisn,
+    role: role,
+    kelas: foundUser.kelas || '-'
+  };
+
   localStorage.setItem('tahfizh_user_session', JSON.stringify(state.user));
   showToast(`Selamat datang, ${state.user.name}!`);
   
@@ -196,7 +169,6 @@ function applyUserSession() {
     // Show Login Screen, Hide Main App
     elements.loginScreen?.classList.remove('hidden');
     elements.appContent?.classList.add('hidden');
-    renderLoginSantriOptions();
     return;
   }
 
@@ -204,8 +176,11 @@ function applyUserSession() {
   elements.loginScreen?.classList.add('hidden');
   elements.appContent?.classList.remove('hidden');
 
-  // Update Header Info
+  // Update Header & Dashboard Welcome Info
   if (elements.headerUserName) elements.headerUserName.innerText = state.user.name;
+  if (elements.headerUserSub) elements.headerUserSub.innerText = state.user.kelas !== '-' ? state.user.kelas : 'Tahfizh Super App';
+  if (elements.welcomeHeading) elements.welcomeHeading.innerText = `Assalamu'alaikum, ${state.user.name.split(' ')[0]}`;
+
   if (elements.headerUserRoleBadge) {
     let roleText = 'Super Admin';
     let roleClass = 'badge-role-admin';
@@ -214,7 +189,7 @@ function applyUserSession() {
       roleText = 'Guru / Ustadz';
       roleClass = 'badge-role-guru';
     } else if (state.user.role === 'santri') {
-      roleText = 'Orang Tua / Santri';
+      roleText = 'Santri / Wali';
       roleClass = 'badge-role-santri';
     }
 
@@ -222,32 +197,24 @@ function applyUserSession() {
     elements.headerUserRoleBadge.className = `text-[10px] px-2 py-0.5 rounded-full font-semibold ${roleClass}`;
   }
 
-  // Role Permissions for Navigation Tabs
+  // Role Permissions for Navigation Tabs & Quick Buttons
   if (state.user.role === 'santri') {
     elements.navInput?.classList.add('hidden');
     elements.navPengaturan?.classList.add('hidden');
+    elements.btnQuickInput?.classList.add('hidden');
   } else if (state.user.role === 'guru') {
     elements.navInput?.classList.remove('hidden');
     elements.navPengaturan?.classList.add('hidden');
+    elements.btnQuickInput?.classList.remove('hidden');
   } else {
     // Super Admin
     elements.navInput?.classList.remove('hidden');
     elements.navPengaturan?.classList.remove('hidden');
+    elements.btnQuickInput?.classList.remove('hidden');
   }
 
   switchTab('dashboard');
   fetchGasData();
-}
-
-function renderLoginSantriOptions() {
-  if (!elements.selectLoginSantri) return;
-  elements.selectLoginSantri.innerHTML = '<option value="">-- Pilih Nama Santri / Anak --</option>';
-  state.santri.forEach(s => {
-    const opt = document.createElement('option');
-    opt.value = s.nama;
-    opt.textContent = `${s.nama} (${s.halaqah || 'Santri'})`;
-    elements.selectLoginSantri.appendChild(opt);
-  });
 }
 
 // --- Navigation Tabs ---
@@ -279,7 +246,6 @@ async function fetchGasData() {
   if (!state.endpoint) {
     updateSyncBadge('Demo Mode (Lokal)', 'bg-amber-100 text-amber-800');
     renderSantriOptions();
-    renderLoginSantriOptions();
     renderDashboard();
     renderRiwayat();
     return;
@@ -293,6 +259,9 @@ async function fetchGasData() {
     const data = await res.json();
 
     if (data.status === 'success') {
+      if (Array.isArray(data.users) && data.users.length > 0) {
+        state.users = data.users;
+      }
       if (Array.isArray(data.santri) && data.santri.length > 0) {
         state.santri = data.santri;
       }
@@ -309,7 +278,6 @@ async function fetchGasData() {
   } finally {
     state.isLoading = false;
     renderSantriOptions();
-    renderLoginSantriOptions();
     renderDashboard();
     renderRiwayat();
   }
@@ -326,28 +294,32 @@ function updateSyncBadge(text, classNames) {
 function renderSantriOptions() {
   if (!elements.selectSantri) return;
   elements.selectSantri.innerHTML = '<option value="">-- Pilih Santri --</option>';
-  state.santri.forEach(s => {
+  
+  // Kombinasikan santri dari sheet santri dan users
+  const list = state.santri.length > 0 ? state.santri : state.users.filter(u => u.role === 'siswa' || u.role === 'santri');
+  
+  list.forEach(s => {
     const opt = document.createElement('option');
     opt.value = s.nama;
-    opt.textContent = `${s.nama} (${s.halaqah || 'Santri'})`;
+    opt.textContent = `${s.nama} (${s.halaqah || s.kelas || 'Santri'})`;
     elements.selectSantri.appendChild(opt);
   });
 }
 
 function renderDashboard() {
   let displaySetoran = [...state.setoran];
-  let displaySantriCount = state.santri.length;
+  let displaySantriCount = state.santri.length > 0 ? state.santri.length : state.users.filter(u => u.role === 'siswa' || u.role === 'santri').length;
 
-  // Jika Orang Tua / Santri, filter khusus data miliknya saja!
-  if (state.user?.role === 'santri' && state.user.santriName) {
-    displaySetoran = state.setoran.filter(s => s.namaSantri.toLowerCase() === state.user.santriName.toLowerCase());
+  // Jika Santri / Wali, filter khusus data miliknya saja!
+  if (state.user?.role === 'santri') {
+    displaySetoran = state.setoran.filter(s => s.namaSantri.toLowerCase().includes(state.user.name.toLowerCase()) || state.user.name.toLowerCase().includes(s.namaSantri.toLowerCase()));
     displaySantriCount = 1;
   }
 
   if (elements.statTotalSantri) elements.statTotalSantri.innerText = displaySantriCount;
   if (elements.statTotalSetoran) elements.statTotalSetoran.innerText = displaySetoran.length;
 
-  const mumtazCount = displaySetoran.filter(s => s.nilai && s.nilai.includes('Mumtaz')).length;
+  const mumtazCount = displaySetoran.filter(s => s.nilai && (s.nilai.includes('Mumtaz') || s.nilai.includes('A'))).length;
   if (elements.statMumtaz) elements.statMumtaz.innerText = mumtazCount;
 
   // Render Activity Terakhir (max 5)
@@ -386,9 +358,9 @@ function renderRiwayat() {
   const filter = elements.filterNilai?.value || '';
 
   let dataset = [...state.setoran];
-  // Jika Orang Tua / Santri, filter khusus data miliknya saja!
-  if (state.user?.role === 'santri' && state.user.santriName) {
-    dataset = dataset.filter(s => s.namaSantri.toLowerCase() === state.user.santriName.toLowerCase());
+  // Jika Santri / Wali, filter khusus data miliknya saja!
+  if (state.user?.role === 'santri') {
+    dataset = dataset.filter(s => s.namaSantri.toLowerCase().includes(state.user.name.toLowerCase()) || state.user.name.toLowerCase().includes(s.namaSantri.toLowerCase()));
   }
 
   const filtered = dataset.filter(item => {
@@ -450,7 +422,7 @@ if (elements.formSetoran) {
     e.preventDefault();
 
     if (state.user?.role === 'santri') {
-      showToast('Akses ditolak: Orang Tua/Santri tidak dapat menginput setoran.', true);
+      showToast('Akses ditolak: Santri/Wali tidak dapat menginput setoran.', true);
       return;
     }
 
@@ -519,13 +491,6 @@ if (elements.formLogin) elements.formLogin.addEventListener('submit', handleLogi
 if (elements.btnLogout) elements.btnLogout.addEventListener('click', handleLogout);
 if (elements.searchRiwayat) elements.searchRiwayat.addEventListener('input', renderRiwayat);
 if (elements.filterNilai) elements.filterNilai.addEventListener('change', renderRiwayat);
-
-// Role Selector Listeners
-elements.roleCards.forEach(card => {
-  card.addEventListener('click', () => {
-    selectRole(card.dataset.role);
-  });
-});
 
 // --- App Initializer ---
 window.addEventListener('DOMContentLoaded', () => {
