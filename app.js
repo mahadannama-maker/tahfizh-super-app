@@ -8,7 +8,7 @@ const DEFAULT_ENDPOINT = 'https://script.google.com/macros/s/AKfycbxbsw18EFULmVd
 const MOCK_USERS = [
   { id: 'USR-001', nama: 'Super Admin', nip_nisn: 'admin', password: '123456', role: 'admin', kelas: '-' },
   { id: 'USR-041', nama: 'Ustadz Abdullah', nip_nisn: 'u.abdullah', password: '123456', role: 'guru', kelas: 'Halaqah Ust Abdullah' },
-  { id: 'USR-043', nama: 'Ustadz Andi', nip_nisn: '121212', password: '121212', role: 'guru', kelas: 'Kelas Dummy' },
+  { id: 'USR-043', nama: 'Ustadz Andi', nip_nisn: '121212', password: '121212', role: 'guru', kelas: 'Halaqah Ust Andi' },
   { id: 'USR-024', nama: 'Ahmad Nicholas Arkana Widyanto', nip_nisn: '8001', password: '123456', role: 'siswa', kelas: 'Halaqah Ust Abdullah' },
   { id: 'USR-018', nama: 'Daffa Sufyaan Kamiil', nip_nisn: '9003', password: '123456', role: 'siswa', kelas: 'Halaqah Ust Rido' }
 ];
