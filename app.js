@@ -1,8 +1,10 @@
 /**
- * Tahfizh Super App - Main Application Logic
+ * Tahfizh Super App - Main Application Logic (With Multi-Role Authentication)
  */
 
-// --- Initial Mock Data (Fallback jika belum ada GAS Endpoint) ---
+// --- Default & Mock Data ---
+const DEFAULT_ENDPOINT = 'https://script.google.com/macros/s/AKfycbxbsw18EFULmVdtE7ubyPd5RG0emHvg3c69TeFZnl2l3380kAhyskGUvrs3NOhHhj0org/exec';
+
 const MOCK_SANTRI = [
   { id: 'STR001', nama: 'Ahmad Fauzi', halaqah: 'Halaqah Al-Fatih', targetJuz: '30', status: 'Aktif' },
   { id: 'STR002', nama: 'Muhammad Zaki', halaqah: 'Halaqah Al-Fatih', targetJuz: '30', status: 'Aktif' },
@@ -48,22 +50,48 @@ const MOCK_SETORAN = [
 ];
 
 // --- App State ---
-const DEFAULT_ENDPOINT = 'https://script.google.com/macros/s/AKfycbxbsw18EFULmVdtE7ubyPd5RG0emHvg3c69TeFZnl2l3380kAhyskGUvrs3NOhHhj0org/exec';
 const savedEndpoint = localStorage.getItem('tahfizh_gas_endpoint');
+const savedUser = JSON.parse(localStorage.getItem('tahfizh_user_session') || 'null');
 
 const state = {
   endpoint: (savedEndpoint && savedEndpoint.trim() !== '') ? savedEndpoint : DEFAULT_ENDPOINT,
   santri: [...MOCK_SANTRI],
   setoran: [...MOCK_SETORAN],
+  user: savedUser, // { name, role: 'admin'|'guru'|'santri', santriName: '' }
+  selectedRole: 'admin',
   currentTab: 'dashboard',
   isLoading: false
 };
 
 // --- DOM Elements ---
 const elements = {
+  // Screens
+  loginScreen: document.getElementById('login-screen'),
+  appContent: document.getElementById('app-content'),
+  
+  // Login Form
+  roleCards: document.querySelectorAll('.role-card'),
+  inputPasswordGroup: document.getElementById('group-password'),
+  inputSantriGroup: document.getElementById('group-santri-select'),
+  inputLoginPassword: document.getElementById('login-password'),
+  selectLoginSantri: document.getElementById('login-santri-select'),
+  formLogin: document.getElementById('form-login'),
+  
+  // User Header Info
+  headerUserName: document.getElementById('user-display-name'),
+  headerUserRoleBadge: document.getElementById('user-role-badge'),
+  btnLogout: document.getElementById('btn-logout'),
+  
+  // Navigation Tabs
+  navInput: document.getElementById('nav-input'),
+  navPengaturan: document.getElementById('nav-pengaturan'),
+
+  // PWA & Settings
   endpointInput: document.getElementById('gas-endpoint-input'),
   btnSaveEndpoint: document.getElementById('btn-save-endpoint'),
   endpointStatus: document.getElementById('endpoint-status'),
+  
+  // Forms & Tables
   formSetoran: document.getElementById('form-setoran'),
   selectSantri: document.getElementById('input-santri'),
   setoranList: document.getElementById('riwayat-list'),
@@ -78,7 +106,7 @@ const elements = {
   syncStatusBadge: document.getElementById('sync-status-badge')
 };
 
-// --- Helper Functions ---
+// --- Toast Notification ---
 function showToast(message, isError = false) {
   if (!elements.toast || !elements.toastMsg) return;
   elements.toastMsg.innerText = message;
@@ -101,8 +129,137 @@ function getBadgeClass(nilai) {
   return 'badge-rasib';
 }
 
+// --- Role Selection UI Logic ---
+function selectRole(role) {
+  state.selectedRole = role;
+  elements.roleCards.forEach(card => {
+    if (card.dataset.role === role) {
+      card.classList.add('selected');
+    } else {
+      card.classList.remove('selected');
+    }
+  });
+
+  if (role === 'santri') {
+    elements.inputPasswordGroup?.classList.add('hidden');
+    elements.inputSantriGroup?.classList.remove('hidden');
+  } else {
+    elements.inputPasswordGroup?.classList.remove('hidden');
+    elements.inputSantriGroup?.classList.add('hidden');
+  }
+}
+
+// --- Login & Session Handler ---
+function handleLogin(e) {
+  e.preventDefault();
+  const role = state.selectedRole;
+
+  if (role === 'admin') {
+    const pwd = elements.inputLoginPassword?.value.trim();
+    if (pwd !== '123456' && pwd !== 'admin') {
+      showToast('Password Admin salah! (Default: 123456)', true);
+      return;
+    }
+    state.user = { name: 'Super Admin', role: 'admin' };
+  } else if (role === 'guru') {
+    const pwd = elements.inputLoginPassword?.value.trim();
+    if (pwd !== '123456' && pwd !== 'guru') {
+      showToast('Password Guru/Ustadz salah! (Default: 123456)', true);
+      return;
+    }
+    state.user = { name: 'Ustadz Penguji', role: 'guru' };
+  } else if (role === 'santri') {
+    const santriName = elements.selectLoginSantri?.value;
+    if (!santriName) {
+      showToast('Harap pilih Nama Santri/Anak!', true);
+      return;
+    }
+    state.user = { name: santriName, role: 'santri', santriName: santriName };
+  }
+
+  // Save session
+  localStorage.setItem('tahfizh_user_session', JSON.stringify(state.user));
+  showToast(`Selamat datang, ${state.user.name}!`);
+  
+  applyUserSession();
+}
+
+function handleLogout() {
+  state.user = null;
+  localStorage.removeItem('tahfizh_user_session');
+  showToast('Anda telah keluar.');
+  applyUserSession();
+}
+
+function applyUserSession() {
+  if (!state.user) {
+    // Show Login Screen, Hide Main App
+    elements.loginScreen?.classList.remove('hidden');
+    elements.appContent?.classList.add('hidden');
+    renderLoginSantriOptions();
+    return;
+  }
+
+  // Show Main App, Hide Login Screen
+  elements.loginScreen?.classList.add('hidden');
+  elements.appContent?.classList.remove('hidden');
+
+  // Update Header Info
+  if (elements.headerUserName) elements.headerUserName.innerText = state.user.name;
+  if (elements.headerUserRoleBadge) {
+    let roleText = 'Super Admin';
+    let roleClass = 'badge-role-admin';
+
+    if (state.user.role === 'guru') {
+      roleText = 'Guru / Ustadz';
+      roleClass = 'badge-role-guru';
+    } else if (state.user.role === 'santri') {
+      roleText = 'Orang Tua / Santri';
+      roleClass = 'badge-role-santri';
+    }
+
+    elements.headerUserRoleBadge.innerText = roleText;
+    elements.headerUserRoleBadge.className = `text-[10px] px-2 py-0.5 rounded-full font-semibold ${roleClass}`;
+  }
+
+  // Role Permissions for Navigation Tabs
+  if (state.user.role === 'santri') {
+    elements.navInput?.classList.add('hidden');
+    elements.navPengaturan?.classList.add('hidden');
+  } else if (state.user.role === 'guru') {
+    elements.navInput?.classList.remove('hidden');
+    elements.navPengaturan?.classList.add('hidden');
+  } else {
+    // Super Admin
+    elements.navInput?.classList.remove('hidden');
+    elements.navPengaturan?.classList.remove('hidden');
+  }
+
+  switchTab('dashboard');
+  fetchGasData();
+}
+
+function renderLoginSantriOptions() {
+  if (!elements.selectLoginSantri) return;
+  elements.selectLoginSantri.innerHTML = '<option value="">-- Pilih Nama Santri / Anak --</option>';
+  state.santri.forEach(s => {
+    const opt = document.createElement('option');
+    opt.value = s.nama;
+    opt.textContent = `${s.nama} (${s.halaqah || 'Santri'})`;
+    elements.selectLoginSantri.appendChild(opt);
+  });
+}
+
 // --- Navigation Tabs ---
 function switchTab(tabName) {
+  // Guard tab permissions
+  if (state.user?.role === 'santri' && (tabName === 'input' || tabName === 'pengaturan')) {
+    tabName = 'dashboard';
+  }
+  if (state.user?.role === 'guru' && tabName === 'pengaturan') {
+    tabName = 'dashboard';
+  }
+
   state.currentTab = tabName;
   document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
   document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
@@ -122,6 +279,7 @@ async function fetchGasData() {
   if (!state.endpoint) {
     updateSyncBadge('Demo Mode (Lokal)', 'bg-amber-100 text-amber-800');
     renderSantriOptions();
+    renderLoginSantriOptions();
     renderDashboard();
     renderRiwayat();
     return;
@@ -142,17 +300,16 @@ async function fetchGasData() {
         state.setoran = data.setoran;
       }
       updateSyncBadge('Terhubung GAS', 'bg-emerald-100 text-emerald-800');
-      showToast('Data berhasil diperbarui dari Google Sheets!');
     } else {
       throw new Error(data.message || 'Gagal memuat data dari GAS');
     }
   } catch (err) {
-    console.warn('Gagal fetch data GAS, menggunakan data terkahir:', err);
+    console.warn('Gagal fetch data GAS, menggunakan data terakhir:', err);
     updateSyncBadge('Offline / Error GAS', 'bg-rose-100 text-rose-800');
-    showToast('Menggunakan data lokal (Tidak dapat terhubung ke GAS)', true);
   } finally {
     state.isLoading = false;
     renderSantriOptions();
+    renderLoginSantriOptions();
     renderDashboard();
     renderRiwayat();
   }
@@ -178,16 +335,25 @@ function renderSantriOptions() {
 }
 
 function renderDashboard() {
-  if (elements.statTotalSantri) elements.statTotalSantri.innerText = state.santri.length;
-  if (elements.statTotalSetoran) elements.statTotalSetoran.innerText = state.setoran.length;
+  let displaySetoran = [...state.setoran];
+  let displaySantriCount = state.santri.length;
 
-  const mumtazCount = state.setoran.filter(s => s.nilai && s.nilai.includes('Mumtaz')).length;
+  // Jika Orang Tua / Santri, filter khusus data miliknya saja!
+  if (state.user?.role === 'santri' && state.user.santriName) {
+    displaySetoran = state.setoran.filter(s => s.namaSantri.toLowerCase() === state.user.santriName.toLowerCase());
+    displaySantriCount = 1;
+  }
+
+  if (elements.statTotalSantri) elements.statTotalSantri.innerText = displaySantriCount;
+  if (elements.statTotalSetoran) elements.statTotalSetoran.innerText = displaySetoran.length;
+
+  const mumtazCount = displaySetoran.filter(s => s.nilai && s.nilai.includes('Mumtaz')).length;
   if (elements.statMumtaz) elements.statMumtaz.innerText = mumtazCount;
 
   // Render Activity Terakhir (max 5)
   if (elements.recentActivityList) {
     elements.recentActivityList.innerHTML = '';
-    const recent = state.setoran.slice(0, 5);
+    const recent = displaySetoran.slice(0, 5);
 
     if (recent.length === 0) {
       elements.recentActivityList.innerHTML = '<div class="text-center py-6 text-slate-400 text-sm">Belum ada aktivitas setoran.</div>';
@@ -219,7 +385,13 @@ function renderRiwayat() {
   const search = (elements.searchRiwayat?.value || '').toLowerCase();
   const filter = elements.filterNilai?.value || '';
 
-  const filtered = state.setoran.filter(item => {
+  let dataset = [...state.setoran];
+  // Jika Orang Tua / Santri, filter khusus data miliknya saja!
+  if (state.user?.role === 'santri' && state.user.santriName) {
+    dataset = dataset.filter(s => s.namaSantri.toLowerCase() === state.user.santriName.toLowerCase());
+  }
+
+  const filtered = dataset.filter(item => {
     const matchSearch = item.namaSantri.toLowerCase().includes(search) || 
                         item.surah.toLowerCase().includes(search) ||
                         (item.catatan && item.catatan.toLowerCase().includes(search));
@@ -277,6 +449,11 @@ if (elements.formSetoran) {
   elements.formSetoran.addEventListener('submit', async (e) => {
     e.preventDefault();
 
+    if (state.user?.role === 'santri') {
+      showToast('Akses ditolak: Orang Tua/Santri tidak dapat menginput setoran.', true);
+      return;
+    }
+
     const newSetoran = {
       id: 'STR-' + Date.now(),
       tanggal: new Date().toLocaleDateString('id-ID'),
@@ -286,7 +463,7 @@ if (elements.formSetoran) {
       ayatEnd: parseInt(document.getElementById('input-ayat-end').value) || 1,
       nilai: document.getElementById('input-nilai').value,
       catatan: document.getElementById('input-catatan').value,
-      penguji: document.getElementById('input-penguji').value || 'Ustadz'
+      penguji: document.getElementById('input-penguji').value || state.user?.name || 'Ustadz'
     };
 
     if (!newSetoran.namaSantri || !newSetoran.surah) {
@@ -294,19 +471,17 @@ if (elements.formSetoran) {
       return;
     }
 
-    // Tambah ke state lokal secara responsif dulu
     state.setoran.unshift(newSetoran);
     renderDashboard();
     elements.formSetoran.reset();
     showToast('Setoran hafalan berhasil disimpan!');
     switchTab('riwayat');
 
-    // Jika Endpoint terpasang, kirim ke GAS
     if (state.endpoint) {
       try {
         await fetch(state.endpoint, {
           method: 'POST',
-          mode: 'no-cors', // Penting untuk GAS Web App cross-origin
+          mode: 'no-cors',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(newSetoran)
         });
@@ -339,18 +514,26 @@ if (elements.btnSaveEndpoint) {
   });
 }
 
-// Filter and Search Listeners
+// --- Event Listeners ---
+if (elements.formLogin) elements.formLogin.addEventListener('submit', handleLogin);
+if (elements.btnLogout) elements.btnLogout.addEventListener('click', handleLogout);
 if (elements.searchRiwayat) elements.searchRiwayat.addEventListener('input', renderRiwayat);
 if (elements.filterNilai) elements.filterNilai.addEventListener('change', renderRiwayat);
 
+// Role Selector Listeners
+elements.roleCards.forEach(card => {
+  card.addEventListener('click', () => {
+    selectRole(card.dataset.role);
+  });
+});
+
 // --- App Initializer ---
 window.addEventListener('DOMContentLoaded', () => {
-  // PWA Service Worker Registration
   if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('./sw.js')
       .then(reg => console.log('PWA Service Worker registered:', reg.scope))
       .catch(err => console.warn('PWA Service Worker registration failed:', err));
   }
 
-  fetchGasData();
+  applyUserSession();
 });
