@@ -3,373 +3,2510 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Tahfizh Super App - PWA</title>
+  <title>Tahfizh Pro - Monitoring Hafalan</title>
   
-  <!-- PWA Settings -->
+  <!-- PWA Manifest & Meta -->
   <link rel="manifest" href="./manifest.json">
-  <meta name="theme-color" content="#0d9488">
+  <meta name="theme-color" content="#0A2647">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <link rel="apple-touch-icon" href="./icons/icon-192.png">
+  <link rel="icon" type="image/png" href="https://i.ibb.co.com/2Y0Hrq3w/Untitled-design.png">
 
-  <!-- Tailwind CSS CDN -->
+  <!-- Libraries -->
   <script src="https://cdn.tailwindcss.com"></script>
-  
-  <!-- Custom CSS -->
-  <link rel="stylesheet" href="./style.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+  <style>
+      :root {
+        /* Tema Biru Ma'had An-Nama' */
+        --blue-deep:     #0A2647; /* Navy sangat gelap */
+        --blue-mid:      #0D47A1; /* Royal Blue */
+        --blue-light:    #1976D2; /* Biru terang */
+        --blue-soft:     #E3F2FD; /* Biru sangat muda */
+        --blue-border:   #BBDEFB; /* Biru batas */
+        
+        --gold:          #C69214; /* Emas elegan */
+        --gold-light:    #F4C542; /* Emas terang */
+        
+        --cream:         #F8FAFC; /* Background utama */
+        
+        --sidebar-w:     260px;
+        --sidebar-w-collapsed: 72px;
+        --navbar-h:      56px;
+      }
+
+      * { box-sizing: border-box; }
+      body { font-family: 'DM Sans', sans-serif; background: var(--cream); color: #1a1a1a; }
+      h1, h2, h3, .display { font-family: 'Playfair Display', serif; }
+
+      /* ── Loader ── */
+      .loader { border: 3px solid rgba(25, 118, 210, 0.2); border-top-color: var(--blue-light); border-radius: 50%; width: 28px; height: 28px; animation: spin 0.8s linear infinite; }
+      @keyframes spin { to { transform: rotate(360deg); } }
+
+      /* ── Scrollbar ── */
+      ::-webkit-scrollbar { width: 5px; }
+      ::-webkit-scrollbar-track { background: transparent; }
+      ::-webkit-scrollbar-thumb { background: var(--blue-light); border-radius: 99px; }
+
+      /* ── Sidebar ── */
+      #sidebar {
+        width: var(--sidebar-w);
+        background: var(--blue-deep);
+        position: relative;
+        overflow: hidden;
+        transition: width 0.28s cubic-bezier(0.4, 0, 0.2, 1);
+        flex-shrink: 0;
+      }
+
+      /* Collapsed sidebar */
+      #sidebar.collapsed { width: var(--sidebar-w-collapsed); }
+      #sidebar.collapsed .sidebar-text { opacity: 0; width: 0; overflow: hidden; white-space: nowrap; transition: opacity 0.15s, width 0.28s; }
+      #sidebar.collapsed .sidebar-brand-text,
+      #sidebar.collapsed .sidebar-section-label,
+      #sidebar.collapsed .user-panel-info { display: none; }
+      #sidebar.collapsed .nav-item { justify-content: center; padding: 11px; }
+      #sidebar.collapsed .nav-item i { margin: 0; }
+      #sidebar.collapsed .user-panel-btn span { display: none; }
+      #sidebar.collapsed .user-panel-wrap { justify-content: center; padding: 12px 8px; }
+      #sidebar.collapsed .sidebar-user-avatar { margin: 0; }
+      #sidebar .sidebar-text { transition: opacity 0.2s 0.05s, width 0.28s; }
+
+      /* ── Navbar ── */
+      #topnav {
+        height: var(--navbar-h);
+        background: #fff;
+        border-bottom: 1px solid #f0f0f0;
+        display: flex; align-items: center; justify-content: space-between;
+        padding: 0 20px;
+        gap: 16px;
+        flex-shrink: 0;
+        z-index: 10;
+        box-shadow: 0 1px 6px rgba(0, 0, 0, 0.05);
+      }
+      .topnav-left  { display: flex; align-items: center; gap: 12px; }
+      .topnav-right { display: flex; align-items: center; gap: 10px; }
+      .topnav-toggle {
+        width: 36px; height: 36px; border-radius: 10px;
+        display: flex; align-items: center; justify-content: center;
+        border: none; background: transparent;
+        color: #6b7280; cursor: pointer; transition: background 0.15s, color 0.15s;
+        flex-shrink: 0;
+      }
+      .topnav-toggle:hover { background: #f3f4f6; color: #111827; }
+      .topnav-breadcrumb { font-size: 0.9rem; font-weight: 600; color: #374151; }
+      .topnav-breadcrumb span { color: #9ca3af; font-weight: 400; margin: 0 6px; }
+      .topnav-avatar {
+        width: 34px; height: 34px; border-radius: 10px;
+        display: flex; align-items: center; justify-content: center;
+        font-weight: 700; font-size: 0.85rem; color: #fff;
+        background: linear-gradient(135deg, var(--blue-light), var(--blue-mid));
+        cursor: default; flex-shrink: 0;
+      }
+      .topnav-user-info { line-height: 1.3; }
+      .topnav-user-name { font-size: 0.82rem; font-weight: 700; color: #111827; }
+      .topnav-user-role { font-size: 0.7rem; color: #9ca3af; text-transform: capitalize; }
+
+      .nav-item {
+        display: flex; align-items: center; gap: 12px;
+        padding: 11px 16px; border-radius: 10px;
+        color: rgba(255, 255, 255, 0.65);
+        font-size: 0.875rem; font-weight: 500;
+        cursor: pointer; transition: all 0.2s;
+        position: relative; z-index: 1;
+      }
+      .nav-item:hover { background: rgba(255, 255, 255, 0.08); color: #fff; }
+      .nav-item.active {
+        background: linear-gradient(135deg, rgba(25, 118, 210, 0.35), rgba(13, 71, 161, 0.15));
+        color: #fff;
+        box-shadow: 0 2px 12px rgba(0, 0, 0, 0.2);
+      }
+      .nav-item.active::before {
+        content: '';
+        position: absolute; left: 0; top: 50%; transform: translateY(-50%);
+        width: 3px; height: 60%; background: var(--gold);
+        border-radius: 0 3px 3px 0;
+      }
+
+      /* ── Stat Cards ── */
+      .stat-card {
+        border-radius: 16px; padding: 22px;
+        position: relative; overflow: hidden;
+        transition: transform 0.2s, box-shadow 0.2s;
+      }
+      .stat-card:hover { transform: translateY(-3px); box-shadow: 0 12px 30px rgba(0, 0, 0, 0.12); }
+      .stat-card::after {
+        content: '';
+        position: absolute; bottom: -20px; right: -20px;
+        width: 100px; height: 100px; border-radius: 50%;
+        background: rgba(255, 255, 255, 0.08);
+      }
+
+      /* ── Form Inputs ── */
+      .form-input {
+        width: 100%; padding: 10px 14px;
+        border: 1.5px solid #e5e7eb; border-radius: 10px;
+        background: #fff; font-family: 'DM Sans', sans-serif;
+        font-size: 0.9rem; transition: border-color 0.2s, box-shadow 0.2s;
+        outline: none;
+      }
+      .form-input:focus { border-color: var(--blue-light); box-shadow: 0 0 0 3px rgba(25, 118, 210, 0.15); }
+      label { display: block; font-size: 0.8rem; font-weight: 600; color: #6b7280; margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.04em; }
+
+      /* ── Buttons ── */
+      .btn-primary {
+        display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+        background: linear-gradient(135deg, var(--blue-mid), var(--blue-light));
+        color: #fff; font-weight: 700; padding: 12px 28px;
+        border-radius: 12px; border: none; cursor: pointer;
+        transition: all 0.2s; font-family: 'DM Sans', sans-serif;
+        box-shadow: 0 4px 14px rgba(25, 118, 210, 0.35);
+      }
+      .btn-primary:hover { transform: translateY(-1px); box-shadow: 0 6px 20px rgba(25, 118, 210, 0.45); }
+      .btn-primary:active { transform: translateY(0); }
+
+      .btn-secondary {
+        display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+        background: var(--blue-soft); color: var(--blue-mid); font-weight: 600; padding: 10px 20px;
+        border-radius: 10px; border: 1.5px solid var(--blue-border); cursor: pointer;
+        transition: all 0.2s; font-family: 'DM Sans', sans-serif;
+      }
+      .btn-secondary:hover { background: #D0E8FF; }
+
+      /* ── Page Card & Sections ── */
+      .page-card { background: #fff; border-radius: 16px; box-shadow: 0 1px 8px rgba(0, 0, 0, 0.06); border: 1px solid rgba(0, 0, 0, 0.05); }
+      .section-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px; }
+      .section-title { font-size: 1.5rem; font-weight: 700; color: #111827; }
+
+      /* ── Badge Pill ── */
+      .badge { display: inline-flex; align-items: center; gap: 4px; padding: 4px 12px; border-radius: 99px; font-size: 0.75rem; font-weight: 600; }
+
+      /* ── Table ── */
+      .data-table { width: 100%; border-collapse: collapse; }
+      .data-table thead tr { background: linear-gradient(90deg, var(--cream), var(--blue-soft)); }
+      .data-table th { padding: 13px 16px; text-align: left; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--blue-deep); border-bottom: 2px solid var(--blue-border); }
+      .data-table td { padding: 13px 16px; font-size: 0.875rem; border-bottom: 1px solid #f3f4f6; color: #374151; }
+      .data-table tbody tr:hover { background: #f9fafb; }
+      .data-table tbody tr:last-child td { border-bottom: none; }
+
+      /* ── Leaderboard Podium ── */
+      .podium-1 { background: linear-gradient(135deg, #fef3c7, #fde68a); border: 2px solid var(--gold); }
+      .podium-2 { background: linear-gradient(135deg, #f1f5f9, #e2e8f0); border: 2px solid #94a3b8; }
+      .podium-3 { background: linear-gradient(135deg, #fff7ed, #fed7aa); border: 2px solid #fb923c; }
+
+      /* ── Profile Avatar ── */
+      .avatar-ring {
+        width: 80px; height: 80px; border-radius: 50%;
+        background: linear-gradient(135deg, var(--blue-light), var(--blue-mid));
+        display: flex; align-items: center; justify-content: center;
+        font-size: 2rem; font-weight: 700; color: #fff;
+        box-shadow: 0 0 0 4px rgba(25, 118, 210, 0.15), 0 4px 20px rgba(25, 118, 210, 0.25);
+      }
+
+      /* ── Poin Chart & Toast ── */
+      #chartProgres { max-height: 220px; }
+      .toast-enter { animation: toastIn 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; }
+      .toast-leave { animation: toastOut 0.25s ease forwards; }
+      @keyframes toastIn { from { opacity:0; transform: translateX(100%) scale(0.9); } to { opacity:1; transform: translateX(0) scale(1); } }
+      @keyframes toastOut { to { opacity:0; transform: translateX(110%) scale(0.9); } }
+
+      /* ── Page Transitions ── */
+      .page-content { animation: fadeUp 0.3s ease; }
+      @keyframes fadeUp { from { opacity:0; transform: translateY(10px); } to { opacity:1; transform: translateY(0); } }
+
+      /* ── Login ── */
+      #view-login {
+        background: linear-gradient(135deg, #041424 0%, var(--blue-deep) 50%, #082F5A 100%);
+        position: relative; overflow: hidden;
+      }
+      .login-card {
+        background: rgba(255, 255, 255, 0.97);
+        backdrop-filter: blur(20px);
+        border-radius: 24px;
+        box-shadow: 0 24px 80px rgba(0, 0, 0, 0.5);
+        padding: 44px 40px;
+      }
+
+      /* ── Surat Autocomplete ── */
+      .surat-dropdown {
+        position: absolute;
+        top: calc(100% + 6px);
+        left: 0; right: 0;
+        background: #fff;
+        border: 1.5px solid var(--blue-border);
+        border-radius: 14px;
+        box-shadow: 0 12px 40px rgba(0, 0, 0, 0.13), 0 2px 8px rgba(25, 118, 210, 0.08);
+        z-index: 999;
+        max-height: 280px;
+        overflow-y: auto;
+        padding: 6px;
+      }
+      .surat-dropdown::-webkit-scrollbar { width: 4px; }
+      .surat-dropdown::-webkit-scrollbar-thumb { background: #90CAF9; border-radius: 99px; }
+
+      .surat-option {
+        display: flex; align-items: center; gap: 10px;
+        padding: 9px 12px;
+        border-radius: 9px;
+        cursor: pointer;
+        font-size: 0.875rem;
+        color: #374151;
+        transition: background 0.12s;
+      }
+      .surat-option:hover, .surat-option.active {
+        background: var(--blue-soft);
+        color: var(--blue-mid);
+      }
+      .surat-option .surat-no {
+        min-width: 26px; height: 26px;
+        border-radius: 7px;
+        background: linear-gradient(135deg, var(--blue-light), var(--blue-mid));
+        color: #fff; font-size: 0.7rem; font-weight: 700;
+        display: flex; align-items: center; justify-content: center;
+        flex-shrink: 0;
+      }
+      .surat-option .surat-name { font-weight: 600; flex: 1; }
+      .surat-option .surat-name em { font-style: normal; color: var(--blue-light); font-weight: 700; }
+      .surat-option .surat-meta { font-size: 0.72rem; color: #9ca3af; }
+
+      /* ── Progress Bar ── */
+      .progress-bar-track { background: #e5e7eb; border-radius: 99px; height: 8px; overflow: hidden; }
+      .progress-bar-fill  { height: 100%; border-radius: 99px; transition: width 0.6s ease; background: linear-gradient(90deg, var(--blue-light), var(--blue-mid)); }
+      .progress-bar-fill.warn  { background: linear-gradient(90deg, #f59e0b, #d97706); }
+      .progress-bar-fill.low   { background: linear-gradient(90deg, #ef4444, #dc2626); }
+
+      /* ── Drawer detail siswa ── */
+      #progress-drawer {
+        position: fixed; top: 0; right: 0; height: 100%; width: 100%; max-width: 520px;
+        background: #fff; z-index: 85; box-shadow: -8px 0 40px rgba(0, 0, 0, 0.15);
+        transform: translateX(100%); transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        display: flex; flex-direction: column;
+      }
+      #progress-drawer.open { transform: translateX(0); }
+      #drawer-overlay {
+        position: fixed; inset: 0; background: rgba(0, 0, 0, 0.4); z-index: 84;
+        display: none;
+      }
+      #drawer-overlay.open { display: block; }
+
+      /* ── Kelas Multi-Select ── */
+      .kelas-option { display: flex; align-items: center; gap: 8px; padding: 8px 10px; border-radius: 8px; cursor: pointer; font-size: 0.875rem; transition: background 0.12s; }
+      .kelas-option:hover { background: var(--blue-soft); }
+      .kelas-option input[type=checkbox] { accent-color: var(--blue-light); width: 15px; height: 15px; flex-shrink: 0; cursor: pointer; }
+      .kelas-option.checked { background: var(--blue-soft); color: var(--blue-mid); font-weight: 600; }
+      .kelas-tag { display: inline-flex; align-items: center; gap: 4px; background: var(--blue-border); color: var(--blue-deep); font-size: 0.72rem; font-weight: 700; padding: 2px 8px; border-radius: 99px; }
+      .kelas-tag .remove { cursor: pointer; opacity: 0.6; }
+      .kelas-tag .remove:hover { opacity: 1; }
+
+      /* ── Modal Role Option ── */
+      .role-option { border-color: #e5e7eb; }
+      .role-option.selected { border-color: var(--blue-light); background: var(--blue-soft); }
+
+      /* Responsive */
+      @media (max-width: 768px) {
+        #sidebar { display: none; position: fixed; z-index: 50; height: 100%; top: 0; left: 0; width: var(--sidebar-w) !important; }
+        #sidebar.mobile-open { display: flex; }
+        .login-card { padding: 32px 24px; }
+        #topnav-desktop-info { display: none; }
+      }
+  </style>
 </head>
-<body class="bg-slate-100 text-slate-800 antialiased min-h-screen flex flex-col items-center">
+<body>
 
-  <!-- Main Mobile Container -->
-  <div class="w-full max-w-md bg-white min-h-screen flex flex-col shadow-2xl relative">
-    
-    <!-- Toast Notification -->
-    <div id="toast" class="hidden fixed top-4 right-4 left-4 sm:left-auto sm:w-96 z-50 p-4 rounded-xl shadow-lg text-white font-medium flex items-center gap-3 transition-all duration-300">
-      <span id="toast-msg">Notifikasi</span>
+  <!-- Toast Container -->
+  <div id="toast-container" class="fixed top-5 right-5 z-[100] flex flex-col gap-2 pointer-events-none"></div>
+
+  <!-- Global Loading -->
+  <div id="loading" class="fixed inset-0 bg-black/40 backdrop-blur-sm z-[90] hidden flex items-center justify-center">
+    <div class="bg-white px-8 py-6 rounded-2xl shadow-2xl flex flex-col items-center gap-3">
+      <div class="loader"></div>
+      <span class="text-sm font-semibold text-blue-800 tracking-wide" id="loading-text">Memproses...</span>
     </div>
+  </div>
 
-    <!-- ================= 1. LOGIN SCREEN ================= -->
-    <div id="login-screen" class="min-h-screen flex flex-col justify-between p-6 bg-gradient-to-b from-teal-800 via-teal-700 to-emerald-800 text-white relative overflow-hidden">
-      <!-- Background pattern decor -->
-      <div class="absolute -right-16 -top-16 w-64 h-64 rounded-full bg-white/10 blur-2xl pointer-events-none"></div>
-      <div class="absolute -left-16 -bottom-16 w-64 h-64 rounded-full bg-emerald-500/20 blur-2xl pointer-events-none"></div>
+  <!-- ═══════════════════════════════════════════════════════
+       VIEW: LOGIN
+  ═══════════════════════════════════════════════════════ -->
+  <div id="view-login" class="min-h-screen flex items-center justify-center p-4">
+    <!-- Decorative blobs -->
+    <div style="position:absolute;top:-100px;left:-100px;width:400px;height:400px;border-radius:50%;background:radial-gradient(circle,rgba(25,118,210,0.15),transparent 70%);pointer-events:none;"></div>
+    <div style="position:absolute;bottom:-80px;right:-80px;width:300px;height:300px;border-radius:50%;background:radial-gradient(circle,rgba(217,119,6,0.12),transparent 70%);pointer-events:none;"></div>
 
-      <!-- Login Header -->
-      <div class="text-center pt-6 space-y-2 z-10">
-        <div class="w-20 h-20 rounded-2xl bg-white flex items-center justify-center mx-auto border border-white/40 shadow-xl overflow-hidden p-2">
-          <img src="./Ma'had.png" alt="Logo Ma'had An-Nama'" class="w-full h-full object-contain">
+    <div class="login-card w-full max-w-[420px] relative z-10">
+      <!-- Logo -->
+      <div class="text-center mb-8">
+        <div class="inline-flex items-center justify-center w-20 h-20 mb-4 relative">
+          <img
+            src="https://i.ibb.co.com/2Y0Hrq3w/Untitled-design.png"
+            alt="Logo Sekolah"
+            style="width:100%;height:100%;object-fit:contain;filter:drop-shadow(0 6px 18px rgba(0,0,0,0.4));"
+            onerror="this.style.display='none';this.nextElementSibling.style.display='flex';"
+          >
+          <div style="display:none;align-items:center;justify-content:center;width:100%;height:100%;background:linear-gradient(135deg,#1976D2,#0D47A1);border-radius:16px;">
+            <i class="fa-solid fa-quran text-3xl text-white"></i>
+          </div>
         </div>
-        <h1 class="text-2xl font-bold tracking-tight">Tahfizh Super App</h1>
-        <p class="text-xs text-teal-100 font-light max-w-xs mx-auto">Ma'had An-Nama' &bull; Monitoring Hafalan Multi-Role</p>
+        <h1 class="text-3xl font-bold text-gray-900" style="font-family:'Playfair Display',serif;">Tahfizh Pro</h1>
+        <p class="text-gray-400 text-sm mt-1 font-medium">Sistem Monitoring Hafalan &amp; Prestasi</p>
+        <div class="mt-3 flex items-center justify-center gap-2">
+          <span class="w-8 h-0.5 bg-blue-200 rounded"></span>
+          <i class="fa-solid fa-star text-amber-400 text-xs"></i>
+          <span class="w-8 h-0.5 bg-blue-200 rounded"></span>
+        </div>
       </div>
 
-      <!-- Login Form Box -->
-      <div class="bg-white text-slate-800 rounded-3xl p-5 shadow-2xl space-y-4 my-auto z-10 border border-slate-100">
+      <form onsubmit="handleLogin(event)" class="space-y-4">
         <div>
-          <h2 class="font-bold text-slate-800 text-base text-center">Masuk ke Akun Anda</h2>
-          <p class="text-xs text-slate-500 text-center mt-0.5">Gunakan NIP / NISN / Username & Password</p>
+          <label>Username / NIP / NISN</label>
+          <div class="relative">
+            <span class="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 text-sm"><i class="fa-solid fa-id-card"></i></span>
+            <input type="text" id="username" class="form-input pl-10" placeholder="admin / u.ahmad / 1001" required>
+          </div>
+        </div>
+        <div>
+          <label>Password</label>
+          <div class="relative">
+            <span class="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 text-sm"><i class="fa-solid fa-lock"></i></span>
+            <input type="password" id="password" value="123456" class="form-input pl-10 pr-10" placeholder="Masukkan password" required>
+            <span class="absolute right-3.5 top-1/2 -translate-y-1/2 text-gray-400 cursor-pointer hover:text-blue-600 transition text-sm" onclick="togglePass('password')">
+              <i class="fa-solid fa-eye"></i>
+            </span>
+          </div>
         </div>
 
-        <form id="form-login" class="space-y-3.5">
-          <!-- Username / NIP / NISN Input -->
-          <div>
-            <label class="block text-xs font-semibold text-slate-700 mb-1">NIP / NISN / Username *</label>
-            <input type="text" id="login-username" required placeholder="Contoh: u.abdullah / 8001 / admin" class="w-full bg-slate-50 border border-slate-300 text-slate-800 text-xs rounded-xl p-3 focus:ring-2 focus:ring-teal-500 focus:outline-none">
-          </div>
-
-          <!-- Password Input -->
-          <div>
-            <label class="block text-xs font-semibold text-slate-700 mb-1">Password *</label>
-            <input type="password" id="login-password" required value="123456" placeholder="Masukkan password" class="w-full bg-slate-50 border border-slate-300 text-slate-800 text-xs rounded-xl p-3 focus:ring-2 focus:ring-teal-500 focus:outline-none">
-            <p class="text-[10px] text-slate-400 mt-1">Default password: <code class="font-mono text-teal-700">123456</code></p>
-          </div>
-
-          <!-- Info Roles Hint Box -->
-          <div class="bg-teal-50 border border-teal-100 p-3 rounded-xl text-[11px] text-slate-600 space-y-1">
-            <div class="font-semibold text-teal-800">💡 Contoh Penggunaan Login:</div>
-            <div>&bull; <strong>Super Admin</strong>: Username <code class="bg-white px-1 rounded text-teal-800">admin</code></div>
-            <div>&bull; <strong>Guru / Ustadz</strong>: Username <code class="bg-white px-1 rounded text-teal-800">u.abdullah</code> / <code class="bg-white px-1 rounded text-teal-800">121212</code></div>
-            <div>&bull; <strong>Orang Tua / Santri</strong>: NISN <code class="bg-white px-1 rounded text-teal-800">8001</code> / <code class="bg-white px-1 rounded text-teal-800">9003</code></div>
-          </div>
-
-          <button type="submit" class="w-full bg-teal-700 hover:bg-teal-800 text-white font-bold text-sm py-3.5 rounded-xl shadow-lg transition duration-200 flex items-center justify-center gap-2">
-            <span>🚀</span> Masuk Sekarang
+        <div class="pt-2">
+          <button type="submit" class="btn-primary w-full py-3.5 text-base rounded-xl">
+            Masuk ke Dashboard <i class="fa-solid fa-arrow-right"></i>
           </button>
-        </form>
-      </div>
+        </div>
 
-      <!-- Login Footer -->
-      <div class="text-center text-[11px] text-teal-200 z-10 pb-2">
-        Tahfizh Super App PWA &bull; NIP/NISN Authentication
-      </div>
+        <div class="flex gap-3 mt-3">
+          <!-- Pengaturan Endpoint -->
+          <button
+            type="button"
+            onclick="openEndpointModal()"
+            class="flex-1 py-2.5 text-xs rounded-lg border border-blue-600 text-blue-700 hover:bg-blue-50 transition-all font-semibold flex items-center justify-center gap-1.5">
+            <i class="fa-solid fa-link"></i> Endpoint GAS
+          </button>
+
+          <!-- Hubungi Admin / WA -->
+          <button
+            type="button"
+            onclick="window.open('https://wa.me/6287876929000?text=Assalamu%27alaikum%2C%20saya%20ingin%20mendaftar%20akun%20tahfizh.', '_blank')"
+            class="flex-1 py-2.5 text-xs rounded-lg border border-green-500 text-green-600 hover:bg-green-50 transition-all font-semibold flex items-center justify-center gap-1.5">
+            <i class="fa-brands fa-whatsapp"></i> Bantuan
+          </button>
+        </div>
+      </form>
+
+      <p class="text-center text-xs text-gray-400 mt-6">© 2026 Tahfizh Super App · Sistem Pencatat Hafalan Standalone</p>
     </div>
+  </div>
 
+  <!-- ═══════════════════════════════════════════════════════
+       VIEW: DASHBOARD SHELL
+  ═══════════════════════════════════════════════════════ -->
+  <div id="view-dashboard" class="hidden flex h-screen overflow-hidden bg-[#f5f6f8]">
 
-    <!-- ================= 2. MAIN APP CONTENT ================= -->
-    <div id="app-content" class="hidden flex-1 flex flex-col pb-24">
-      
-      <!-- Top Header -->
-      <header class="glass-header text-white px-5 py-3.5 sticky top-0 z-40 shadow-md">
-        <div class="flex justify-between items-center">
-          <div class="flex items-center gap-2.5">
-            <div class="w-9 h-9 rounded-xl bg-white flex items-center justify-center border border-white/40 overflow-hidden p-0.5 shadow-sm">
-              <img src="./Ma'had.png" alt="Logo Ma'had An-Nama'" class="w-full h-full object-contain">
-            </div>
-            <div>
-              <div class="flex items-center gap-1.5">
-                <span id="user-display-name" class="font-bold text-sm leading-tight">User</span>
-                <span id="user-role-badge" class="text-[10px] px-2 py-0.5 rounded-full font-semibold badge-role-admin">Role</span>
-              </div>
-              <p id="user-display-sub" class="text-[11px] text-teal-100 font-light">Tahfizh Super App</p>
-            </div>
+    <!-- ── SIDEBAR ── -->
+    <aside id="sidebar" class="flex flex-col z-20 h-full">
+
+      <!-- Brand -->
+      <div class="px-4 py-5 flex items-center gap-3 border-b border-white/10 relative z-10 min-h-[var(--navbar-h)]">
+        <div class="w-11 h-11 rounded-xl bg-white flex items-center justify-center overflow-hidden shadow-md flex-shrink-0">
+          <img src="https://i.ibb.co.com/2Y0Hrq3w/Untitled-design.png" alt="Logo" class="w-8 h-8 object-contain">
+        </div>
+        <div class="sidebar-brand-text overflow-hidden">
+          <span class="font-bold text-white text-lg sidebar-text" style="font-family:'Playfair Display',serif;">
+            Tahfizh Pro
+          </span>
+          <div class="text-[10px] text-blue-200 font-semibold tracking-[0.25em] uppercase sidebar-text">
+            Monitoring Hafalan
+          </div>
+        </div>
+      </div>
+
+      <!-- Nav Items -->
+      <nav class="flex-1 px-3 py-5 space-y-1 relative z-10 overflow-y-auto overflow-x-hidden">
+        <div class="sidebar-section-label text-[10px] text-white/30 font-bold tracking-widest uppercase px-3 mb-3">Menu Utama</div>
+
+        <div class="nav-item active" onclick="showPage('page-home')" id="nav-home" title="Dashboard">
+          <i class="fa-solid fa-house-chimney w-5 text-center text-blue-400 flex-shrink-0"></i>
+          <span class="sidebar-text">Dashboard</span>
+        </div>
+
+        <div id="menu-admin" class="hidden space-y-1">
+          <div class="nav-item" onclick="showPage('page-users')" id="nav-users" title="Manajemen User">
+            <i class="fa-solid fa-users-gear w-5 text-center text-blue-400 flex-shrink-0"></i>
+            <span class="sidebar-text">Manajemen User</span>
+          </div>
+        </div>
+
+        <div id="menu-guru" class="hidden space-y-1">
+          <div class="nav-item" onclick="showPage('page-input')" id="nav-input" title="Input Setoran">
+            <i class="fa-solid fa-pen-to-square w-5 text-center text-blue-400 flex-shrink-0"></i>
+            <span class="sidebar-text">Input Setoran</span>
+          </div>
+          <div class="nav-item" onclick="showPage('page-progress')" id="nav-progress" title="Progress Siswa">
+            <i class="fa-solid fa-chart-line w-5 text-center text-blue-400 flex-shrink-0"></i>
+            <span class="sidebar-text">Progress Siswa</span>
+          </div>
+          <div class="nav-item" onclick="showPage('page-penilaian')" id="nav-penilaian" title="Kelola Penilaian">
+            <i class="fa-solid fa-sliders w-5 text-center text-blue-400 flex-shrink-0"></i>
+            <span class="sidebar-text">Kelola Penilaian</span>
+          </div>
+          <div class="nav-item" onclick="showPage('page-laporan')" id="nav-laporan" title="Laporan Excel">
+            <i class="fa-solid fa-file-excel w-5 text-center text-blue-400 flex-shrink-0"></i>
+            <span class="sidebar-text">Laporan Excel</span>
+          </div>
+        </div>
+
+        <div id="menu-siswa" class="hidden space-y-1">
+          <div class="nav-item" onclick="showPage('page-riwayat')" id="nav-riwayat" title="Riwayat Setoran">
+            <i class="fa-solid fa-scroll w-5 text-center text-blue-400 flex-shrink-0"></i>
+            <span class="sidebar-text">Riwayat Setoran</span>
+          </div>
+        </div>
+
+        <div class="nav-item" onclick="showPage('page-leaderboard')" id="nav-leaderboard" title="Leaderboard">
+          <i class="fa-solid fa-trophy w-5 text-center text-blue-400 flex-shrink-0"></i>
+          <span class="sidebar-text">Leaderboard</span>
+        </div>
+
+        <div class="nav-item" onclick="showPage('page-profile')" id="nav-profile" title="Pengaturan Akun">
+          <i class="fa-solid fa-user-gear w-5 text-center text-blue-400 flex-shrink-0"></i>
+          <span class="sidebar-text">Pengaturan Akun</span>
+        </div>
+      </nav>
+
+      <!-- User Panel -->
+      <div class="px-3 pb-4 relative z-10">
+        <div class="user-panel-wrap bg-white/10 rounded-xl p-3 backdrop-blur-sm border border-white/10 flex items-center gap-3">
+          <div class="sidebar-user-avatar w-9 h-9 rounded-xl flex items-center justify-center font-bold text-white text-sm flex-shrink-0"
+            id="user-initial" style="background:linear-gradient(135deg,#1976D2,#0D47A1);">A</div>
+          <div class="user-panel-info flex-1 min-w-0">
+            <div class="text-sm font-semibold text-white truncate" id="user-name-display">User</div>
+            <div class="text-xs text-blue-300 capitalize" id="user-role-display">Role</div>
+          </div>
+          <button onclick="handleLogout()" title="Keluar"
+            class="user-panel-btn flex items-center gap-1.5 text-xs text-red-300 hover:text-red-100 transition flex-shrink-0 p-1">
+            <i class="fa-solid fa-right-from-bracket"></i>
+            <span class="sidebar-text">Keluar</span>
+          </button>
+        </div>
+      </div>
+    </aside>
+
+    <!-- ── MAIN CONTAINER ── -->
+    <main class="flex-1 flex flex-col h-screen overflow-hidden">
+
+      <!-- ── TOP NAVBAR ── -->
+      <header id="topnav">
+        <div class="topnav-left">
+          <button class="topnav-toggle" id="sidebar-toggle-btn" onclick="toggleSidebar()" aria-label="Toggle sidebar">
+            <i class="fa-solid fa-bars text-base"></i>
+          </button>
+          <div class="topnav-breadcrumb">
+            <span class="text-blue-700 font-bold" style="font-family:'Playfair Display',serif;">Tahfizh Pro</span>
+            <span>›</span>
+            <span id="topnav-page-title">Dashboard</span>
+          </div>
+        </div>
+        <div class="topnav-right">
+          <!-- GAS Endpoint Status Badge -->
+          <button onclick="openEndpointModal()" class="flex items-center gap-1.5 bg-slate-100 hover:bg-slate-200 px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-700 transition" title="Pengaturan Server Google Apps Script">
+            <span class="w-2 h-2 rounded-full bg-emerald-500" id="gas-status-dot"></span>
+            <span class="hidden sm:inline">Server GAS</span>
+          </button>
+
+          <!-- Kelas badge (guru only) -->
+          <div id="kelas-badge" class="hidden items-center gap-2 bg-blue-50 px-3 py-1.5 rounded-lg border border-blue-100">
+            <i class="fa-solid fa-chalkboard-user text-blue-600 text-xs"></i>
+            <span class="text-xs font-semibold text-blue-700" id="kelas-badge-text"></span>
+          </div>
+          
+          <!-- Date -->
+          <div id="topnav-date" class="hidden md:flex items-center gap-1.5 text-xs text-gray-400">
+            <i class="fa-regular fa-calendar text-gray-300"></i>
+            <span id="date-display"></span>
           </div>
 
-          <div class="flex items-center gap-2">
-            <div id="sync-status-badge" class="text-[10px] px-2 py-0.5 rounded-full font-semibold bg-teal-800/40 text-teal-100 border border-white/20">
-              Memuat...
+          <div class="w-px h-6 bg-gray-100 hidden md:block"></div>
+
+          <!-- User info -->
+          <div id="topnav-desktop-info" class="flex items-center gap-2.5">
+            <div class="topnav-user-info hidden sm:block text-right">
+              <div class="topnav-user-name" id="topnav-user-name">User</div>
+              <div class="topnav-user-role" id="topnav-user-role">role</div>
             </div>
-            <button id="btn-logout" title="Keluar" class="bg-white/20 hover:bg-white/30 text-white p-2 rounded-xl text-xs transition">
-              🚪
-            </button>
+            <div class="topnav-avatar" id="topnav-avatar">A</div>
           </div>
         </div>
       </header>
 
-      <!-- Main Content Area -->
-      <main class="flex-1 px-4 py-5 space-y-5">
-        
-        <!-- ================= TAB 1: DASHBOARD ================= -->
-        <section id="tab-dashboard" class="tab-content space-y-5">
-          
-          <!-- Welcome Card -->
-          <div class="bg-gradient-to-r from-teal-700 to-emerald-600 rounded-2xl p-5 text-white shadow-lg relative overflow-hidden">
-            <div class="relative z-10 space-y-1">
-              <span class="text-xs font-semibold uppercase tracking-wider text-teal-200">Dashboard Utama</span>
-              <h2 id="welcome-heading" class="text-xl font-bold">Assalamu'alaikum</h2>
-              <p class="text-xs text-teal-100 font-light">Pantau progress hafalan santri secara praktis & cepat.</p>
-            </div>
-            <div class="mt-4 flex gap-2">
-              <button id="btn-quick-input" onclick="switchTab('input')" class="bg-white text-teal-800 hover:bg-teal-50 px-4 py-2 rounded-xl font-semibold text-xs transition shadow-sm flex items-center gap-1.5">
-                <span>➕</span> Input Setoran
-              </button>
-              <button onclick="switchTab('riwayat')" class="bg-teal-800/60 hover:bg-teal-800 text-white border border-white/20 px-4 py-2 rounded-xl font-medium text-xs transition">
-                📜 Riwayat
-              </button>
-            </div>
-          </div>
+      <!-- Mobile sidebar overlay -->
+      <div id="sidebar-overlay" class="hidden fixed inset-0 bg-black/40 z-40 md:hidden" onclick="toggleSidebar()"></div>
 
-          <!-- Metrics Grid -->
-          <div class="grid grid-cols-3 gap-3">
-            <div class="bg-white p-3.5 rounded-2xl border border-slate-200 shadow-sm text-center">
-              <span class="text-2xl">👥</span>
-              <div id="stat-total-santri" class="text-xl font-bold text-slate-800 mt-1">0</div>
-              <div class="text-[11px] text-slate-500 font-medium">Total Santri</div>
-            </div>
-            <div class="bg-white p-3.5 rounded-2xl border border-slate-200 shadow-sm text-center">
-              <span class="text-2xl">📚</span>
-              <div id="stat-total-setoran" class="text-xl font-bold text-slate-800 mt-1">0</div>
-              <div class="text-[11px] text-slate-500 font-medium">Total Setoran</div>
-            </div>
-            <div class="bg-white p-3.5 rounded-2xl border border-slate-200 shadow-sm text-center">
-              <span class="text-2xl">⭐</span>
-              <div id="stat-mumtaz" class="text-xl font-bold text-emerald-600 mt-1">0</div>
-              <div class="text-[11px] text-slate-500 font-medium">Nilai Mumtaz</div>
-            </div>
-          </div>
+      <!-- Scrollable Content Area -->
+      <div class="flex-1 overflow-y-auto" id="main-scroll">
 
-          <!-- Recent Activity -->
-          <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm space-y-3">
-            <div class="flex justify-between items-center">
-              <h3 class="font-bold text-slate-800 text-sm flex items-center gap-1.5">
-                <span>⏱️</span> Setoran Terakhir
-              </h3>
-              <button onclick="switchTab('riwayat')" class="text-xs text-teal-700 font-semibold hover:underline">Lihat Semua</button>
-            </div>
-            <div id="recent-activity-list" class="space-y-2.5">
-              <!-- Dynamic activity cards -->
-            </div>
-          </div>
-
-        </section>
-
-        <!-- ================= TAB 2: INPUT SETORAN ================= -->
-        <section id="tab-input" class="tab-content hidden space-y-4">
-          <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-4">
+        <!-- ═══ PAGE: HOME / DASHBOARD ═══ -->
+        <div id="page-home" class="page-content block p-6 md:p-8">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-8">
             <div>
-              <h3 class="font-bold text-slate-800 text-base flex items-center gap-2">
-                <span>✍️</span> Catat Setoran Hafalan
-              </h3>
-              <p class="text-xs text-slate-500">Masukkan hasil simaan hafalan santri terbaru.</p>
+              <h2 class="text-2xl font-bold text-gray-900" style="font-family:'Playfair Display',serif;">Dashboard Overview</h2>
+              <p class="text-sm text-gray-400 mt-0.5" id="date-display-sub"></p>
+            </div>
+            <div class="flex items-center gap-2 bg-white px-4 py-2 rounded-xl shadow-sm border border-gray-100">
+              <div class="w-2 h-2 rounded-full bg-blue-400 animate-pulse"></div>
+              <span class="text-xs font-semibold text-gray-500">Live Sync</span>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8" id="stats-container"></div>
+
+          <div class="grid grid-cols-1 xl:grid-cols-5 gap-6">
+            <div class="xl:col-span-3 page-card p-6">
+              <div class="flex items-center justify-between mb-5">
+                <div>
+                  <h3 class="font-bold text-gray-800 text-base">Grafik Perkembangan Poin</h3>
+                  <p class="text-xs text-gray-400 mt-0.5">Performa setoran hafalan</p>
+                </div>
+                <div class="w-8 h-8 rounded-lg bg-blue-50 flex items-center justify-center">
+                  <i class="fa-solid fa-chart-line text-blue-600 text-sm"></i>
+                </div>
+              </div>
+              <div style="height:210px;position:relative;">
+                <canvas id="chartProgres"></canvas>
+              </div>
             </div>
 
-            <form id="form-setoran" class="space-y-3.5">
-              <!-- Santri -->
-              <div>
-                <label class="block text-xs font-semibold text-slate-700 mb-1">Nama Santri *</label>
-                <select id="input-santri" required class="w-full bg-slate-50 border border-slate-300 text-slate-800 text-xs rounded-xl p-3 focus:ring-2 focus:ring-teal-500 focus:outline-none">
-                  <option value="">-- Pilih Santri --</option>
-                </select>
+            <div class="xl:col-span-2 page-card p-6">
+              <div class="flex items-center justify-between mb-4">
+                <h3 class="font-bold text-gray-800 text-base">Setoran Terbaru</h3>
+                <span class="badge bg-blue-50 text-blue-700">Live</span>
               </div>
+              <div class="space-y-1 overflow-y-auto max-h-[260px]" id="recent-list"></div>
+            </div>
+          </div>
 
-              <!-- Surah -->
-              <div>
-                <label class="block text-xs font-semibold text-slate-700 mb-1">Surah Al-Qur'an *</label>
-                <input type="text" id="input-surah" list="surah-list" required placeholder="Contoh: An-Naba', Al-Mulk" class="w-full bg-slate-50 border border-slate-300 text-slate-800 text-xs rounded-xl p-3 focus:ring-2 focus:ring-teal-500 focus:outline-none">
-                <datalist id="surah-list">
-                  <option value="An-Naba'"></option>
-                  <option value="An-Nazi'at"></option>
-                  <option value="'Abasa"></option>
-                  <option value="At-Takwir"></option>
-                  <option value="Al-Infitar"></option>
-                  <option value="Al-Mutaffifin"></option>
-                  <option value="Al-Inshiqaq"></option>
-                  <option value="Al-Buruj"></option>
-                  <option value="At-Tariq"></option>
-                  <option value="Al-A'la"></option>
-                  <option value="Al-Ghashiyah"></option>
-                  <option value="Al-Fajr"></option>
-                  <option value="Al-Balad"></option>
-                  <option value="Ash-Shams"></option>
-                  <option value="Al-Lail"></option>
-                  <option value="Ad-Duha"></option>
-                  <option value="Ash-Sharh"></option>
-                  <option value="At-Tin"></option>
-                  <option value="Al-'Alaq"></option>
-                  <option value="Al-Qadr"></option>
-                  <option value="Al-Bayyinah"></option>
-                  <option value="Az-Zalzalah"></option>
-                  <option value="Al-'Adiyat"></option>
-                  <option value="Al-Qari'ah"></option>
-                  <option value="At-Takathur"></option>
-                  <option value="Al-'Asr"></option>
-                  <option value="Al-Humazah"></option>
-                  <option value="Al-Fil"></option>
-                  <option value="Quraish"></option>
-                  <option value="Al-Ma'un"></option>
-                  <option value="Al-Kauthar"></option>
-                  <option value="Al-Kafirun"></option>
-                  <option value="An-Nasr"></option>
-                  <option value="Al-Lahab"></option>
-                  <option value="Al-Ikhlas"></option>
-                  <option value="Al-Falaq"></option>
-                  <option value="An-Nas"></option>
-                </datalist>
+          <!-- Top Siswa -->
+          <div id="top-siswa-section" class="mt-6 hidden">
+            <div class="page-card p-6">
+              <div class="flex items-center justify-between mb-5">
+                <h3 class="font-bold text-gray-800">Top 5 Hafizh Terbaik</h3>
+                <span class="badge bg-amber-50 text-amber-700"><i class="fa-solid fa-crown mr-1 text-amber-500"></i>Peringkat Poin</span>
               </div>
+              <div id="top-siswa-list" class="grid grid-cols-1 sm:grid-cols-5 gap-3"></div>
+            </div>
+          </div>
+        </div>
 
-              <!-- Range Ayat -->
-              <div class="grid grid-cols-2 gap-3">
-                <div>
-                  <label class="block text-xs font-semibold text-slate-700 mb-1">Ayat Mula</label>
-                  <input type="number" id="input-ayat-start" value="1" min="1" required class="w-full bg-slate-50 border border-slate-300 text-slate-800 text-xs rounded-xl p-3 focus:ring-2 focus:ring-teal-500 focus:outline-none">
-                </div>
-                <div>
-                  <label class="block text-xs font-semibold text-slate-700 mb-1">Ayat Akhir</label>
-                  <input type="number" id="input-ayat-end" value="40" min="1" required class="w-full bg-slate-50 border border-slate-300 text-slate-800 text-xs rounded-xl p-3 focus:ring-2 focus:ring-teal-500 focus:outline-none">
+        <!-- ═══ PAGE: INPUT SETORAN ═══ -->
+        <div id="page-input" class="page-content hidden p-6 md:p-8">
+          <div class="section-header">
+            <div>
+              <h2 class="section-title">Input Setoran Hafalan</h2>
+              <p class="text-sm text-gray-400 mt-0.5">Catat hasil bacaan hafalan santri / siswa</p>
+            </div>
+            <div class="hidden sm:flex items-center gap-2 bg-blue-50 text-blue-700 px-4 py-2 rounded-xl text-sm font-semibold border border-blue-100">
+              <i class="fa-solid fa-clock-rotate-left"></i>
+              <span id="input-time-display"></span>
+            </div>
+          </div>
+
+          <div class="page-card p-6 md:p-8">
+            <form onsubmit="handleSubmitSetoran(event)" id="setoranForm">
+              <!-- Siswa -->
+              <div class="mb-6">
+                <label>Pilih Siswa / Santri</label>
+                <div class="relative">
+                  <span class="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 text-sm"><i class="fa-solid fa-user-graduate"></i></span>
+                  <select id="input-siswa" class="form-input pl-10 appearance-none" required>
+                    <option value="">— Cari &amp; Pilih Nama Siswa —</option>
+                  </select>
+                  <span class="absolute right-3.5 top-1/2 -translate-y-1/2 text-gray-400 text-xs pointer-events-none"><i class="fa-solid fa-chevron-down"></i></span>
                 </div>
               </div>
 
-              <!-- Nilai / Predikat -->
-              <div>
-                <label class="block text-xs font-semibold text-slate-700 mb-1">Nilai / Predikat</label>
-                <select id="input-nilai" class="w-full bg-slate-50 border border-slate-300 text-slate-800 text-xs rounded-xl p-3 focus:ring-2 focus:ring-teal-500 focus:outline-none">
-                  <option value="Mumtaz (A)">Mumtaz (A) - Sangat Baik & Mutqin</option>
-                  <option value="Jayyid Jiddan (B+)">Jayyid Jiddan (B+) - Baik Sekali</option>
-                  <option value="Jayyid (B)">Jayyid (B) - Cukup Baik</option>
-                  <option value="Maqbul (C)">Maqbul (C) - Perlu Mengulang</option>
-                </select>
+              <!-- Juz & Surat -->
+              <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 mb-6">
+                <div>
+                  <label>Juz</label>
+                  <div class="relative">
+                    <span class="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 text-sm pointer-events-none"><i class="fa-solid fa-layer-group"></i></span>
+                    <select name="juz" id="input-juz" class="form-input pl-10 appearance-none" required onchange="filterSuratByJuz(this.value)">
+                      <option value="">— Pilih Juz —</option>
+                      <script>
+                        for(let j=1; j<=30; j++) document.write(`<option value="${j}">Juz ${j}</option>`);
+                      </script>
+                    </select>
+                    <span class="absolute right-3.5 top-1/2 -translate-y-1/2 text-gray-400 text-xs pointer-events-none"><i class="fa-solid fa-chevron-down"></i></span>
+                  </div>
+                </div>
+
+                <!-- Surat Autocomplete -->
+                <div class="lg:col-span-2 relative">
+                  <label>Nama Surat (114 Surat)</label>
+                  <div class="relative">
+                    <span class="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 text-sm pointer-events-none z-10"><i class="fa-solid fa-book-open"></i></span>
+                    <input
+                      type="text"
+                      id="surat-input-display"
+                      class="form-input pl-10 pr-10"
+                      placeholder="Ketik nama surat, misal: Al-Baqarah, An-Nas…"
+                      autocomplete="off"
+                      oninput="handleSuratInput(this.value)"
+                      onfocus="handleSuratInput(this.value)"
+                      onkeydown="handleSuratKeydown(event)"
+                      required
+                    >
+                    <input type="hidden" name="surat" id="surat-value">
+                    <span id="surat-clear-btn" class="absolute right-3.5 top-1/2 -translate-y-1/2 text-gray-300 cursor-pointer hover:text-gray-500 text-sm hidden" onclick="clearSuratInput()">
+                      <i class="fa-solid fa-xmark"></i>
+                    </span>
+                  </div>
+                  <!-- Dropdown -->
+                  <div id="surat-dropdown" class="surat-dropdown hidden">
+                    <div id="surat-dropdown-list"></div>
+                  </div>
+                </div>
+
+                <div>
+                  <label>Halaman (opsional)</label>
+                  <input type="number" name="halaman" class="form-input" placeholder="No. Halaman">
+                </div>
               </div>
 
-              <!-- Catatan Ustadz -->
-              <div>
-                <label class="block text-xs font-semibold text-slate-700 mb-1">Catatan Ustadz / Evaluasi</label>
-                <textarea id="input-catatan" rows="2" placeholder="Catatan kelancaran, tajwid, makhraj..." class="w-full bg-slate-50 border border-slate-300 text-slate-800 text-xs rounded-xl p-3 focus:ring-2 focus:ring-teal-500 focus:outline-none"></textarea>
+              <!-- Ayat Dari & Sampai -->
+              <div class="grid grid-cols-2 sm:grid-cols-4 gap-5 mb-6">
+                <div class="sm:col-span-2">
+                  <label>Ayat Dari</label>
+                  <input type="number" name="ayat_dari" class="form-input" placeholder="Ayat mulai" required>
+                </div>
+                <div class="sm:col-span-2">
+                  <label>Sampai Ayat</label>
+                  <input type="number" name="ayat_sampai" class="form-input" placeholder="Ayat selesai" required>
+                </div>
               </div>
 
-              <!-- Penguji -->
-              <div>
-                <label class="block text-xs font-semibold text-slate-700 mb-1">Nama Ustadz / Penguji</label>
-                <input type="text" id="input-penguji" placeholder="Ustadz H. Abdullah" class="w-full bg-slate-50 border border-slate-300 text-slate-800 text-xs rounded-xl p-3 focus:ring-2 focus:ring-teal-500 focus:outline-none">
+              <!-- Penilaian -->
+              <div class="p-5 rounded-xl bg-gradient-to-br from-blue-50 to-green-50 border border-blue-100 mb-6">
+                <p class="text-xs font-bold text-blue-700 uppercase tracking-widest mb-4"><i class="fa-solid fa-star mr-1"></i>Penilaian Bacaan</p>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                  <div>
+                    <label>Kelancaran</label>
+                    <select name="status" id="select-kelancaran" class="form-input" onchange="updatePoinPreview()"></select>
+                  </div>
+                  <div>
+                    <label>Nilai Makhraj &amp; Tajwid</label>
+                    <select name="nilai" id="select-nilai" class="form-input" onchange="updatePoinPreview()"></select>
+                  </div>
+                </div>
               </div>
 
-              <!-- Submit Button -->
-              <button type="submit" class="w-full bg-teal-700 hover:bg-teal-800 text-white font-bold text-sm py-3.5 rounded-xl shadow-md transition duration-200 mt-2 flex items-center justify-center gap-2">
-                <span>💾</span> Simpan Setoran
-              </button>
+              <!-- Point Preview -->
+              <div class="flex items-center gap-3 bg-amber-50 border border-amber-100 rounded-xl px-5 py-3 mb-6" id="poin-preview">
+                <i class="fa-solid fa-bolt text-amber-500"></i>
+                <span class="text-sm text-amber-800 font-medium" id="poin-preview-text">Estimasi poin akan dihitung otomatis oleh sistem</span>
+              </div>
+
+              <!-- Catatan -->
+              <div class="mb-8">
+                <label>Catatan Guru / Ustadz</label>
+                <textarea name="catatan" rows="3" class="form-input" placeholder="Tulis catatan motivasi atau koreksi tajwid untuk siswa…"></textarea>
+              </div>
+
+              <!-- Submit Buttons -->
+              <div class="flex flex-col sm:flex-row gap-3">
+                <button type="submit" class="btn-primary flex-1 py-4 text-base">
+                  <i class="fa-solid fa-floppy-disk"></i>
+                  Simpan Setoran Hafalan
+                </button>
+                <button type="reset" class="btn-secondary px-8">
+                  <i class="fa-solid fa-rotate-left"></i>
+                  Reset Form
+                </button>
+              </div>
             </form>
           </div>
-        </section>
+        </div>
 
-        <!-- ================= TAB 3: RIWAYAT ================= -->
-        <section id="tab-riwayat" class="tab-content hidden space-y-4">
-          <!-- Search & Filter Bar -->
-          <div class="bg-white p-3.5 rounded-2xl border border-slate-200 shadow-sm space-y-3">
-            <div class="relative">
-              <input type="text" id="search-riwayat" placeholder="Cari santri, surah, catatan..." class="w-full bg-slate-50 border border-slate-300 text-slate-800 text-xs rounded-xl pl-9 pr-3 py-2.5 focus:ring-2 focus:ring-teal-500 focus:outline-none">
-              <span class="absolute left-3 top-2.5 text-slate-400 text-sm">🔍</span>
-            </div>
-
-            <div class="flex gap-2">
-              <select id="filter-nilai" class="w-full bg-slate-50 border border-slate-300 text-slate-700 text-xs rounded-xl p-2.5 focus:ring-2 focus:ring-teal-500 focus:outline-none">
-                <option value="">Semua Predikat</option>
-                <option value="Mumtaz">Mumtaz (A)</option>
-                <option value="Jayyid Jiddan">Jayyid Jiddan (B+)</option>
-                <option value="Jayyid">Jayyid (B)</option>
-                <option value="Maqbul">Maqbul (C)</option>
-              </select>
-            </div>
-          </div>
-
-          <!-- History List Container -->
-          <div id="riwayat-list" class="space-y-3">
-            <!-- Dynamic items -->
-          </div>
-        </section>
-
-        <!-- ================= TAB 4: PENGATURAN ================= -->
-        <section id="tab-pengaturan" class="tab-content hidden space-y-4">
-          
-          <!-- GAS Endpoint Config -->
-          <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-3">
-            <h3 class="font-bold text-slate-800 text-sm flex items-center gap-2">
-              <span>⚙️</span> Koneksi Google Apps Script
-            </h3>
-            <p class="text-xs text-slate-500 leading-relaxed">
-              Masukkan URL Web App dari Google Apps Script agar aplikasi terhubung secara real-time ke Google Sheets Anda.
-            </p>
-
+        <!-- ═══ PAGE: KELOLA PENILAIAN ═══ -->
+        <div id="page-penilaian" class="page-content hidden p-6 md:p-8">
+          <div class="section-header">
             <div>
-              <label class="block text-xs font-semibold text-slate-700 mb-1">URL Endpoint Web App GAS</label>
-              <input type="url" id="gas-endpoint-input" placeholder="https://script.google.com/macros/s/.../exec" class="w-full bg-slate-50 border border-slate-300 text-slate-800 text-xs rounded-xl p-3 focus:ring-2 focus:ring-teal-500 focus:outline-none">
-              <div id="endpoint-status" class="text-xs text-slate-500 mt-1"></div>
+              <h2 class="section-title">Kelola Penilaian</h2>
+              <p class="text-sm text-gray-400 mt-0.5">Atur kriteria penilaian dan bobot poin yang berlaku</p>
             </div>
-
-            <button id="btn-save-endpoint" class="w-full bg-slate-800 hover:bg-slate-900 text-white font-semibold text-xs py-3 rounded-xl shadow transition">
-              Simpan Endpoint
+            <button onclick="resetPenilaianToDefault()" class="btn-secondary text-sm">
+              <i class="fa-solid fa-rotate-left"></i> Reset ke Default
             </button>
           </div>
 
-        </section>
+          <div class="grid grid-cols-1 xl:grid-cols-2 gap-6">
+            <!-- Kelancaran -->
+            <div class="page-card overflow-hidden">
+              <div class="flex items-center gap-3 p-5 border-b border-gray-100 bg-gradient-to-r from-blue-50 to-white">
+                <div class="w-10 h-10 rounded-xl bg-blue-600 flex items-center justify-center flex-shrink-0">
+                  <i class="fa-solid fa-wave-square text-white"></i>
+                </div>
+                <div class="flex-1">
+                  <h3 class="font-bold text-gray-800">Kelancaran Bacaan</h3>
+                  <p class="text-xs text-gray-400 mt-0.5">Kategori tingkat kelancaran hafalan</p>
+                </div>
+                <span id="badge-kelancaran" class="badge bg-blue-100 text-blue-700">0 item</span>
+              </div>
+              <div class="p-4 space-y-2 min-h-[120px]" id="list-kelancaran"></div>
+              <div class="p-4 border-t border-gray-100 bg-gray-50/60">
+                <p class="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3"><i class="fa-solid fa-plus mr-1"></i>Tambah Opsi Kelancaran</p>
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div>
+                    <label>Nama Kategori</label>
+                    <input type="text" id="add-kel-nama" class="form-input" placeholder="mis. Sangat Lancar">
+                  </div>
+                  <div>
+                    <label>Poin</label>
+                    <input type="number" id="add-kel-poin" class="form-input" placeholder="mis. 40">
+                  </div>
+                  <div>
+                    <label>Ikon</label>
+                    <select id="add-kel-icon" class="form-input">
+                      <option value="🔵">🔵 Biru</option>
+                      <option value="🟢">🟢 Hijau</option>
+                      <option value="🟡">🟡 Kuning</option>
+                      <option value="🟠">🟠 Oranye</option>
+                      <option value="🔴">🔴 Merah</option>
+                    </select>
+                  </div>
+                </div>
+                <button onclick="addKelancaran()" class="btn-primary mt-3 py-2.5 px-5 text-sm">Tambah</button>
+              </div>
+            </div>
 
-      </main>
+            <!-- Nilai Tajwid -->
+            <div class="page-card overflow-hidden">
+              <div class="flex items-center gap-3 p-5 border-b border-gray-100 bg-gradient-to-r from-amber-50 to-white">
+                <div class="w-10 h-10 rounded-xl bg-amber-500 flex items-center justify-center flex-shrink-0">
+                  <i class="fa-solid fa-star text-white"></i>
+                </div>
+                <div class="flex-1">
+                  <h3 class="font-bold text-gray-800">Nilai Makhraj &amp; Tajwid</h3>
+                  <p class="text-xs text-gray-400 mt-0.5">Tingkatan mutu bacaan</p>
+                </div>
+                <span id="badge-nilai" class="badge bg-amber-100 text-amber-700">0 item</span>
+              </div>
+              <div class="p-4 space-y-2 min-h-[120px]" id="list-nilai"></div>
+              <div class="p-4 border-t border-gray-100 bg-gray-50/60">
+                <p class="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3"><i class="fa-solid fa-plus mr-1"></i>Tambah Opsi Nilai</p>
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div>
+                    <label>Kode Nilai</label>
+                    <input type="text" id="add-nil-kode" class="form-input" placeholder="mis. A" maxlength="4">
+                  </div>
+                  <div>
+                    <label>Deskripsi</label>
+                    <input type="text" id="add-nil-desc" class="form-input" placeholder="mis. Mumtaaz">
+                  </div>
+                  <div>
+                    <label>Poin</label>
+                    <input type="number" id="add-nil-poin" class="form-input" placeholder="mis. 60">
+                  </div>
+                </div>
+                <button onclick="addNilai()" class="btn-primary mt-3 py-2.5 px-5 text-sm">Tambah</button>
+              </div>
+            </div>
+          </div>
+        </div>
 
-      <!-- Bottom Navigation Bar (Mobile) -->
-      <nav class="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-md bg-white/95 backdrop-blur-md border-t border-slate-200 py-2.5 px-3 flex justify-around items-center z-40 shadow-lg">
-        
-        <button id="nav-dashboard" onclick="switchTab('dashboard')" class="nav-item active flex flex-col items-center gap-1 text-slate-400 hover:text-teal-700 transition">
-          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path>
-          </svg>
-          <span class="text-[10px]">Beranda</span>
-        </button>
+        <!-- ═══ PAGE: LAPORAN EXCEL ═══ -->
+        <div id="page-laporan" class="page-content hidden p-6 md:p-8">
+          <div class="section-header">
+            <div>
+              <h2 class="section-title">Laporan Excel</h2>
+              <p class="text-sm text-gray-400 mt-1">Unduh data rekap &amp; riwayat hafalan format Spreadsheet</p>
+            </div>
+          </div>
+          <div class="page-card p-6 mb-6">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
+              <div>
+                <label>Pilih Kelas</label>
+                <select id="laporan-filter-kelas" class="form-input">
+                  <option value="semua">Semua Kelas</option>
+                </select>
+              </div>
+              <div>
+                <label>Jenis Laporan</label>
+                <select id="laporan-jenis" class="form-input">
+                  <option value="rekap">Rekap Per Siswa</option>
+                  <option value="detail">Detail Setoran</option>
+                  <option value="gabungan">Gabungan (Rekap + Detail)</option>
+                </select>
+              </div>
+              <div>
+                <button onclick="handleDownloadLaporan()" class="btn-primary w-full" id="btn-download-laporan">
+                  <i class="fa-solid fa-file-excel"></i> Download Excel (.xlsx)
+                </button>
+              </div>
+            </div>
+          </div>
 
-        <button id="nav-input" onclick="switchTab('input')" class="nav-item flex flex-col items-center gap-1 text-slate-400 hover:text-teal-700 transition">
-          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v3m0 0v3m0-3h3m-3 0H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-          </svg>
-          <span class="text-[10px]">Input</span>
-        </button>
+          <div class="page-card p-6" id="laporan-preview-section" style="display:none;">
+            <div class="flex items-center justify-between mb-4">
+              <h3 class="font-bold text-gray-800">Preview Data</h3>
+              <span class="text-xs text-gray-400" id="laporan-preview-info"></span>
+            </div>
+            <div class="overflow-x-auto">
+              <table class="data-table" id="laporan-preview-table">
+                <thead></thead>
+                <tbody></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
 
-        <button id="nav-riwayat" onclick="switchTab('riwayat')" class="nav-item flex flex-col items-center gap-1 text-slate-400 hover:text-teal-700 transition">
-          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"></path>
-          </svg>
-          <span class="text-[10px]">Riwayat</span>
-        </button>
+        <!-- ═══ PAGE: PROGRESS SISWA ═══ -->
+        <div id="page-progress" class="page-content hidden p-6 md:p-8">
+          <div class="section-header">
+            <div>
+              <h2 class="section-title">📊 Progress Siswa</h2>
+              <p class="text-sm text-gray-400 mt-0.5">Pantau perkembangan hafalan setiap santri</p>
+            </div>
+            <button onclick="loadProgress()" class="btn-secondary">
+              <i class="fa-solid fa-rotate"></i> Refresh
+            </button>
+          </div>
+          <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6" id="progress-stats"></div>
+          <div class="page-card p-4 mb-5 flex flex-col sm:flex-row gap-3 items-center">
+            <div class="relative flex-1 w-full">
+              <span class="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 text-sm"><i class="fa-solid fa-magnifying-glass"></i></span>
+              <input type="text" id="progress-search" class="form-input pl-10" placeholder="Cari nama siswa…" oninput="progressCurrentPage=1;renderProgressCards()">
+            </div>
+            <select id="progress-filter-kelas" class="form-input w-full sm:w-44" onchange="progressCurrentPage=1;renderProgressCards()"></select>
+            <select id="progress-sort" class="form-input w-full sm:w-52" onchange="progressCurrentPage=1;renderProgressCards()">
+              <option value="poin_desc">Poin Tertinggi</option>
+              <option value="poin_asc">Poin Terendah</option>
+              <option value="setoran_desc">Setoran Terbanyak</option>
+              <option value="nama_asc">Nama A–Z</option>
+            </select>
+          </div>
 
-        <button id="nav-pengaturan" onclick="switchTab('pengaturan')" class="nav-item flex flex-col items-center gap-1 text-slate-400 hover:text-teal-700 transition">
-          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path>
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
-          </svg>
-          <span class="text-[10px]">Pengaturan</span>
-        </button>
+          <div id="progress-cards" class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-5"></div>
+          
+          <div id="progress-pagination" class="hidden mt-5 page-card px-5 py-4 flex flex-col sm:flex-row items-center justify-between gap-3">
+            <span id="progress-info" class="text-sm text-gray-500"></span>
+            <div class="flex items-center gap-1.5">
+              <button id="progress-btn-prev" onclick="progressGoPage(progressCurrentPage-1)" class="px-4 py-2 rounded-lg text-sm font-semibold border border-gray-200 bg-white">Prev</button>
+              <div id="progress-page-numbers" class="flex gap-1"></div>
+              <button id="progress-btn-next" onclick="progressGoPage(progressCurrentPage+1)" class="px-4 py-2 rounded-lg text-sm font-semibold border border-gray-200 bg-white">Next</button>
+            </div>
+          </div>
+        </div>
 
-      </nav>
-    </div>
+        <!-- ═══ PAGE: RIWAYAT SETORAN (SISWA) ═══ -->
+        <div id="page-riwayat" class="page-content hidden p-6 md:p-8">
+          <div class="section-header">
+            <div>
+              <h2 class="section-title">📖 Riwayat Setoran Saya</h2>
+              <p class="text-sm text-gray-400 mt-0.5">Catatan seluruh hafalan yang telah disetorkan</p>
+            </div>
+            <button onclick="loadMySetoran()" class="btn-secondary">
+              <i class="fa-solid fa-rotate"></i> Refresh
+            </button>
+          </div>
+          <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6" id="riwayat-stats"></div>
+          <div class="page-card p-4 mb-5 flex flex-col sm:flex-row gap-3 items-center">
+            <div class="relative flex-1 w-full">
+              <span class="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 text-sm"><i class="fa-solid fa-magnifying-glass"></i></span>
+              <input type="text" id="riwayat-search" class="form-input pl-10" placeholder="Cari surat, juz, atau nilai…" oninput="filterRiwayat()">
+            </div>
+            <select id="riwayat-filter-nilai" class="form-input w-full sm:w-40" onchange="filterRiwayat()">
+              <option value="">Semua Nilai</option>
+              <option value="A">Nilai A</option>
+              <option value="B">Nilai B</option>
+              <option value="C">Nilai C</option>
+            </select>
+          </div>
+          <div class="page-card overflow-hidden">
+            <div class="overflow-x-auto">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Tanggal</th>
+                    <th>Juz / Surat</th>
+                    <th class="hidden sm:table-cell">Ayat</th>
+                    <th class="text-center">Nilai</th>
+                    <th class="hidden md:table-cell">Kelancaran</th>
+                    <th class="hidden md:table-cell">Guru</th>
+                    <th class="text-right pr-5">Poin</th>
+                  </tr>
+                </thead>
+                <tbody id="riwayat-body"></tbody>
+              </table>
+            </div>
+            <div id="riwayat-empty" class="hidden text-center py-14">
+              <p class="text-gray-400 font-medium">Belum ada riwayat setoran</p>
+            </div>
+          </div>
+        </div>
 
+        <!-- ═══ PAGE: LEADERBOARD ═══ -->
+        <div id="page-leaderboard" class="page-content hidden p-6 md:p-8">
+          <div class="section-header">
+            <div>
+              <h2 class="section-title">🏆 Leaderboard Hafizh</h2>
+              <p class="text-sm text-gray-400 mt-0.5">Peringkat santri berdasarkan total poin hafalan</p>
+            </div>
+            <button onclick="loadLeaderboard()" class="btn-secondary">
+              <i class="fa-solid fa-rotate"></i> Refresh
+            </button>
+          </div>
+          <div class="grid grid-cols-3 gap-4 mb-6" id="podium-section"></div>
+          <div class="page-card p-4 mb-5 flex flex-col sm:flex-row gap-3 items-center">
+            <div class="relative flex-1 w-full">
+              <span class="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 text-sm"><i class="fa-solid fa-magnifying-glass"></i></span>
+              <input type="text" id="lb-search" class="form-input pl-10" placeholder="Cari nama atau kelas…" oninput="filterLeaderboard()">
+            </div>
+            <select id="lb-filter-kelas" class="form-input w-full sm:w-40" onchange="filterLeaderboard()"></select>
+          </div>
+          <div class="page-card overflow-hidden">
+            <div class="overflow-x-auto">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th class="w-16 text-center">#</th>
+                    <th>Nama Siswa</th>
+                    <th class="hidden md:table-cell">Kelas</th>
+                    <th class="text-center">Badge</th>
+                    <th class="text-right pr-6">Total Poin</th>
+                  </tr>
+                </thead>
+                <tbody id="leaderboard-body"></tbody>
+              </table>
+            </div>
+            <div id="lb-empty" class="hidden text-center py-14">
+              <p class="text-gray-400 font-medium">Tidak ada data leaderboard</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- ═══ PAGE: MANAJEMEN USER (ADMIN) ═══ -->
+        <div id="page-users" class="page-content hidden p-6 md:p-8">
+          <div class="section-header">
+            <div>
+              <h2 class="section-title">👥 Manajemen User</h2>
+              <p class="text-sm text-gray-400 mt-0.5">Kelola akun guru, ustadz, dan santri</p>
+            </div>
+            <button onclick="openUserModal()" class="btn-primary py-2.5 px-5 text-sm">
+              <i class="fa-solid fa-plus"></i> Tambah User
+            </button>
+          </div>
+          <div class="flex gap-1 bg-gray-100 p-1 rounded-xl w-fit mb-6">
+            <button id="tab-btn-guru" onclick="switchUserTab('guru')" class="px-5 py-2 rounded-lg text-sm font-semibold bg-white shadow text-blue-700">Guru</button>
+            <button id="tab-btn-siswa" onclick="switchUserTab('siswa')" class="px-5 py-2 rounded-lg text-sm font-semibold text-gray-500">Siswa</button>
+            <button id="tab-btn-kelas" onclick="switchUserTab('kelas')" class="px-5 py-2 rounded-lg text-sm font-semibold text-gray-500">Kelola Kelas</button>
+          </div>
+          
+          <div id="user-table-section">
+            <div class="page-card p-4 mb-4 flex justify-between items-center">
+              <input type="text" id="users-search" class="form-input max-w-sm" placeholder="Cari user…" oninput="usersCurrentPage=1;renderUsersTable()">
+            </div>
+            <div class="page-card overflow-hidden">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Nama</th>
+                    <th id="col-nip-nisn-header">NIP / NISN</th>
+                    <th id="col-kelas-header">Kelas Ajar</th>
+                    <th class="text-center">Role</th>
+                    <th class="text-center w-28">Aksi</th>
+                  </tr>
+                </thead>
+                <tbody id="users-tbody"></tbody>
+              </table>
+              <div id="users-empty" class="hidden text-center py-14 text-gray-400">Tidak ada user</div>
+            </div>
+          </div>
+
+          <div id="kelas-panel" class="hidden">
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
+              <div class="page-card p-6">
+                <h3 class="font-bold text-gray-800 mb-3">Tambah Kelas Baru</h3>
+                <div class="flex gap-2">
+                  <input type="text" id="input-kelas-baru" class="form-input" placeholder="Contoh: 7A, 8B…">
+                  <button onclick="submitKelas()" class="btn-primary px-5 text-sm">Tambah</button>
+                </div>
+              </div>
+              <div class="page-card p-6">
+                <h3 class="font-bold text-gray-800 mb-3">Daftar Kelas</h3>
+                <div id="kelas-list" class="space-y-2"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ═══ PAGE: PROFILE ═══ -->
+        <div id="page-profile" class="page-content hidden p-6 md:p-8">
+          <div class="section-header">
+            <div>
+              <h2 class="section-title">Pengaturan Akun</h2>
+              <p class="text-sm text-gray-400 mt-0.5">Keamanan dan profil login Anda</p>
+            </div>
+          </div>
+          <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div class="page-card p-8 flex flex-col items-center text-center">
+              <div class="avatar-ring mb-4" id="profile-avatar">A</div>
+              <h3 class="text-xl font-bold text-gray-900" id="profile-name">-</h3>
+              <span class="badge bg-blue-100 text-blue-700 mt-2 capitalize" id="profile-role">-</span>
+              <div class="mt-6 w-full space-y-3 text-left">
+                <div class="bg-gray-50 rounded-xl p-4">
+                  <div class="text-xs text-gray-400 font-semibold uppercase mb-1">NIP / NISN</div>
+                  <div class="font-semibold text-gray-700" id="profile-username">-</div>
+                </div>
+              </div>
+            </div>
+
+            <div class="lg:col-span-2 page-card p-8">
+              <h3 class="font-bold text-gray-800 mb-4">Ubah Password</h3>
+              <form onsubmit="handlePasswordChange(event)" class="space-y-4">
+                <div>
+                  <label>Password Lama</label>
+                  <input type="password" id="oldPass" class="form-input" required>
+                </div>
+                <div>
+                  <label>Password Baru</label>
+                  <input type="password" id="newPass" class="form-input" required oninput="checkPasswordStrength(this.value)">
+                  <div class="mt-2 flex gap-1" id="strength-bars">
+                    <div class="h-1 flex-1 rounded-full bg-gray-200" id="sb1"></div>
+                    <div class="h-1 flex-1 rounded-full bg-gray-200" id="sb2"></div>
+                    <div class="h-1 flex-1 rounded-full bg-gray-200" id="sb3"></div>
+                    <div class="h-1 flex-1 rounded-full bg-gray-200" id="sb4"></div>
+                  </div>
+                  <p class="text-[11px] text-gray-400 mt-1" id="strength-label">Kekuatan password</p>
+                </div>
+                <div>
+                  <label>Konfirmasi Password Baru</label>
+                  <input type="password" id="confPass" class="form-input" required>
+                </div>
+                <button type="submit" class="btn-primary w-full py-3.5">Simpan Password Baru</button>
+              </form>
+            </div>
+          </div>
+        </div>
+
+      </div><!-- /main-scroll -->
+    </main>
   </div>
 
-  <!-- App Script Load -->
-  <script src="./app.js"></script>
+  <!-- ═══ MODAL: USER FORM ═══ -->
+  <div id="modal-user" class="fixed inset-0 z-[80] hidden items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-lg p-6 max-h-[90vh] overflow-y-auto">
+      <div class="flex justify-between items-center mb-4">
+        <h3 class="font-bold text-lg text-gray-900" id="modal-user-title">Tambah User</h3>
+        <button onclick="closeUserModal()" class="text-gray-400 hover:text-gray-600"><i class="fa-solid fa-xmark text-lg"></i></button>
+      </div>
+      <div class="space-y-4">
+        <div id="modal-role-row">
+          <label>Role</label>
+          <div class="grid grid-cols-2 gap-3 mt-1">
+            <button type="button" class="role-option p-3 border-2 rounded-xl text-left font-semibold text-sm" id="role-opt-guru" onclick="selectModalRole('guru')">Guru / Ustadz</button>
+            <button type="button" class="role-option p-3 border-2 rounded-xl text-left font-semibold text-sm" id="role-opt-siswa" onclick="selectModalRole('siswa')">Siswa / Santri</button>
+          </div>
+          <input type="hidden" id="modal-role" value="guru">
+        </div>
+        <div>
+          <label>Nama Lengkap</label>
+          <input type="text" id="modal-nama" class="form-input" placeholder="Nama Lengkap">
+        </div>
+        <div id="modal-field-nip">
+          <label>NIP / Username</label>
+          <input type="text" id="modal-username" class="form-input" placeholder="NIP Pegawai">
+        </div>
+        <div id="modal-fields-siswa" class="hidden space-y-4">
+          <div>
+            <label>NISN</label>
+            <input type="text" id="modal-nisn" class="form-input" placeholder="NISN Siswa">
+          </div>
+          <div>
+            <label>Kelas</label>
+            <select id="modal-kelas-siswa" class="form-input"></select>
+          </div>
+          <div>
+            <label>Target Juz</label>
+            <select id="modal-target-juz" class="form-input">
+              <option value="30">30 Juz</option>
+              <option value="10">10 Juz</option>
+              <option value="5">5 Juz</option>
+              <option value="1">1 Juz</option>
+            </select>
+          </div>
+        </div>
+        <div id="modal-field-kelas-guru">
+          <label>Kelas Ajar (pisahkan koma)</label>
+          <input type="text" id="modal-kelas-guru" class="form-input" placeholder="Contoh: 7A, 7B">
+        </div>
+        <div>
+          <label id="modal-pass-label">Password</label>
+          <input type="password" id="modal-password" class="form-input" placeholder="Password">
+        </div>
+        <div class="flex gap-3 pt-3">
+          <button onclick="closeUserModal()" class="btn-secondary flex-1">Batal</button>
+          <button onclick="submitUserForm()" class="btn-primary flex-1" id="modal-submit-btn">Simpan</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ MODAL: ENDPOINT CONFIG ═══ -->
+  <div id="modal-endpoint" class="fixed inset-0 z-[100] hidden items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6">
+      <div class="flex justify-between items-center mb-4">
+        <h3 class="font-bold text-lg text-gray-900"><i class="fa-solid fa-server mr-2 text-blue-600"></i>Endpoint GAS API</h3>
+        <button onclick="closeEndpointModal()" class="text-gray-400 hover:text-gray-600"><i class="fa-solid fa-xmark text-lg"></i></button>
+      </div>
+      <p class="text-xs text-gray-500 mb-4">
+        Masukkan URL Web App Google Apps Script hasil deployment Anda untuk menghubungkan data Google Sheets secara langsung.
+      </p>
+      <div class="space-y-4">
+        <div>
+          <label>URL Web App GAS *</label>
+          <input type="url" id="cfg-gas-url" class="form-input text-xs font-mono" placeholder="https://script.google.com/macros/s/.../exec">
+        </div>
+        <div id="endpoint-test-result" class="text-xs p-3 rounded-lg hidden"></div>
+        <div class="flex gap-2">
+          <button onclick="testGasEndpoint()" class="btn-secondary text-xs flex-1"><i class="fa-solid fa-plug"></i> Tes Koneksi</button>
+          <button onclick="saveGasEndpoint()" class="btn-primary text-xs flex-1"><i class="fa-solid fa-floppy-disk"></i> Simpan URL</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ DRAWER PROGRESS SISWA ═══ -->
+  <div id="drawer-overlay" onclick="closeProgressDrawer()"></div>
+  <div id="progress-drawer">
+    <div class="flex items-center justify-between px-6 py-4 border-b border-gray-100">
+      <div class="flex items-center gap-3">
+        <div id="drawer-avatar" class="w-10 h-10 rounded-xl bg-blue-600 text-white font-bold flex items-center justify-center">A</div>
+        <div>
+          <h4 class="font-bold text-gray-900" id="drawer-nama">-</h4>
+          <span class="text-xs text-gray-400" id="drawer-kelas">-</span>
+        </div>
+      </div>
+      <button onclick="closeProgressDrawer()" class="text-gray-400 hover:text-gray-600"><i class="fa-solid fa-xmark text-lg"></i></button>
+    </div>
+    <div class="p-6 overflow-y-auto space-y-5 flex-1">
+      <div class="grid grid-cols-3 gap-3 text-center">
+        <div class="bg-blue-50 p-3 rounded-xl">
+          <div class="text-xl font-bold text-blue-700" id="drawer-poin">0</div>
+          <div class="text-xs text-gray-400">Total Poin</div>
+        </div>
+        <div class="bg-green-50 p-3 rounded-xl">
+          <div class="text-xl font-bold text-green-700" id="drawer-setoran-count">0</div>
+          <div class="text-xs text-gray-400">Setoran</div>
+        </div>
+        <div class="bg-amber-50 p-3 rounded-xl">
+          <div class="text-xl font-bold text-amber-700" id="drawer-rank">#1</div>
+          <div class="text-xs text-gray-400">Rank</div>
+        </div>
+      </div>
+      <div>
+        <div class="flex justify-between text-xs text-gray-500 mb-1">
+          <span>Badge: <strong id="drawer-badge" class="text-amber-600">-</strong></span>
+          <span id="drawer-progress-label"></span>
+        </div>
+        <div class="progress-bar-track">
+          <div class="progress-bar-fill" id="drawer-progress-bar" style="width:0%"></div>
+        </div>
+      </div>
+      <div>
+        <h4 class="font-bold text-gray-800 text-sm mb-2">Riwayat Poin</h4>
+        <div style="height:160px;"><canvas id="drawer-chart"></canvas></div>
+      </div>
+      <div>
+        <h4 class="font-bold text-gray-800 text-sm mb-2">Catatan Setoran</h4>
+        <div id="drawer-riwayat" class="space-y-2 max-h-60 overflow-y-auto"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════
+       JAVASCRIPT LOGIC & UNIVERSAL API BRIDGE
+  ═══════════════════════════════════════════════════════ -->
+  <script>
+    // ═══════════════════════════════════════════════════════
+    // 1. UNIVERSAL API BRIDGE (GOOGLE.SCRIPT.RUN COMPATIBILITY)
+    // ═══════════════════════════════════════════════════════
+    const DEFAULT_GAS_URL = 'https://script.google.com/macros/s/AKfycbzBX4FNtnFGpKECkVQMb3RT6rWepef5Y-L_xtDLz3WDbYa_EIfC2tmNnKudwy9bEXiPTA/exec';
+
+    function getApiEndpoint() {
+      return localStorage.getItem('tahfizh_gas_endpoint') || DEFAULT_GAS_URL;
+    }
+
+    // Universal Bridge replacing google.script.run for Standalone Web Apps
+    window.google = window.google || {};
+    window.google.script = window.google.script || {};
+    window.google.script.run = new Proxy({}, {
+      get: function(target, propKey) {
+        let successHandler = null;
+        let failureHandler = null;
+
+        const runner = {
+          withSuccessHandler: function(cb) { successHandler = cb; return runner; },
+          withFailureHandler: function(cb) { failureHandler = cb; return runner; }
+        };
+
+        // Create executable function for every backend API name
+        const createInvoker = (fnName) => {
+          return async function(...args) {
+            const endpoint = getApiEndpoint();
+            try {
+              const res = await fetch(endpoint, {
+                method: 'POST',
+                headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                body: JSON.stringify({ action: fnName, params: args })
+              });
+
+              if (!res.ok) throw new Error(`HTTP Error ${res.status}: ${res.statusText}`);
+              const data = await res.json();
+              if (data && data.status === 'error' && !data.data) {
+                // If it's a soft error object from backend logic
+                if (successHandler) successHandler(data);
+                else if (failureHandler) failureHandler(data.message || 'Error occurred');
+              } else {
+                if (successHandler) successHandler(data);
+              }
+            } catch (err) {
+              console.warn(`[GAS Bridge Error in ${fnName}]:`, err);
+              if (failureHandler) failureHandler(err.message || err);
+              else showToast(`Gagal koneksi ke server: ${err.message}`, 'error');
+            }
+          };
+        };
+
+        return new Proxy(runner, {
+          get: function(rTarget, rProp) {
+            if (rProp === 'withSuccessHandler') return runner.withSuccessHandler;
+            if (rProp === 'withFailureHandler') return runner.withFailureHandler;
+            return createInvoker(rProp);
+          }
+        });
+      }
+    });
+
+    // ═══════════════════════════════════════════════════════
+    // 2. SURAT AL-QUR'AN DATABASE (114 SURAT)
+    // ═══════════════════════════════════════════════════════
+    const SURAT_LIST = [
+      { no: 1, name: "Al-Fatihah", ayat: 7, juz: 1 },
+      { no: 2, name: "Al-Baqarah", ayat: 286, juz: 1 },
+      { no: 3, name: "Ali 'Imran", ayat: 200, juz: 3 },
+      { no: 4, name: "An-Nisa'", ayat: 176, juz: 4 },
+      { no: 5, name: "Al-Ma'idah", ayat: 120, juz: 6 },
+      { no: 6, name: "Al-An'am", ayat: 165, juz: 7 },
+      { no: 7, name: "Al-A'raf", ayat: 206, juz: 8 },
+      { no: 8, name: "Al-Anfal", ayat: 75, juz: 9 },
+      { no: 9, name: "At-Taubah", ayat: 129, juz: 10 },
+      { no: 10, name: "Yunus", ayat: 109, juz: 11 },
+      { no: 11, name: "Hud", ayat: 123, juz: 11 },
+      { no: 12, name: "Yusuf", ayat: 111, juz: 12 },
+      { no: 13, name: "Ar-Ra'd", ayat: 43, juz: 13 },
+      { no: 14, name: "Ibrahim", ayat: 52, juz: 13 },
+      { no: 15, name: "Al-Hijr", ayat: 99, juz: 14 },
+      { no: 16, name: "An-Nahl", ayat: 128, juz: 14 },
+      { no: 17, name: "Al-Isra'", ayat: 111, juz: 15 },
+      { no: 18, name: "Al-Kahf", ayat: 110, juz: 15 },
+      { no: 19, name: "Maryam", ayat: 98, juz: 16 },
+      { no: 20, name: "Ta-Ha", ayat: 135, juz: 16 },
+      { no: 21, name: "Al-Anbiya'", ayat: 112, juz: 17 },
+      { no: 22, name: "Al-Hajj", ayat: 78, juz: 17 },
+      { no: 23, name: "Al-Mu'minun", ayat: 118, juz: 18 },
+      { no: 24, name: "An-Nur", ayat: 64, juz: 18 },
+      { no: 25, name: "Al-Furqan", ayat: 77, juz: 18 },
+      { no: 26, name: "Asy-Syu'ara'", ayat: 227, juz: 19 },
+      { no: 27, name: "An-Naml", ayat: 93, juz: 19 },
+      { no: 28, name: "Al-Qasas", ayat: 88, juz: 20 },
+      { no: 29, name: "Al-'Ankabut", ayat: 69, juz: 20 },
+      { no: 30, name: "Ar-Rum", ayat: 60, juz: 21 },
+      { no: 31, name: "Luqman", ayat: 34, juz: 21 },
+      { no: 32, name: "As-Sajdah", ayat: 30, juz: 21 },
+      { no: 33, name: "Al-Ahzab", ayat: 73, juz: 21 },
+      { no: 34, name: "Saba'", ayat: 54, juz: 22 },
+      { no: 35, name: "Fatir", ayat: 45, juz: 22 },
+      { no: 36, name: "Ya-Sin", ayat: 83, juz: 22 },
+      { no: 37, name: "As-Saffat", ayat: 182, juz: 23 },
+      { no: 38, name: "Sad", ayat: 88, juz: 23 },
+      { no: 39, name: "Az-Zumar", ayat: 75, juz: 23 },
+      { no: 40, name: "Ghafir", ayat: 85, juz: 24 },
+      { no: 41, name: "Fussilat", ayat: 54, juz: 24 },
+      { no: 42, name: "Asy-Syura", ayat: 53, juz: 25 },
+      { no: 43, name: "Az-Zukhruf", ayat: 89, juz: 25 },
+      { no: 44, name: "Ad-Dukhan", ayat: 59, juz: 25 },
+      { no: 45, name: "Al-Jasiyah", ayat: 37, juz: 25 },
+      { no: 46, name: "Al-Ahqaf", ayat: 35, juz: 26 },
+      { no: 47, name: "Muhammad", ayat: 38, juz: 26 },
+      { no: 48, name: "Al-Fath", ayat: 29, juz: 26 },
+      { no: 49, name: "Al-Hujurat", ayat: 18, juz: 26 },
+      { no: 50, name: "Qaf", ayat: 45, juz: 26 },
+      { no: 51, name: "Az-Zariyat", ayat: 60, juz: 26 },
+      { no: 52, name: "At-Tur", ayat: 49, juz: 27 },
+      { no: 53, name: "An-Najm", ayat: 62, juz: 27 },
+      { no: 54, name: "Al-Qamar", ayat: 55, juz: 27 },
+      { no: 55, name: "Ar-Rahman", ayat: 78, juz: 27 },
+      { no: 56, name: "Al-Waqi'ah", ayat: 96, juz: 27 },
+      { no: 57, name: "Al-Hadid", ayat: 29, juz: 27 },
+      { no: 58, name: "Al-Mujadilah", ayat: 22, juz: 28 },
+      { no: 59, name: "Al-Hasyr", ayat: 24, juz: 28 },
+      { no: 60, name: "Al-Mumtahanah", ayat: 13, juz: 28 },
+      { no: 61, name: "As-Saff", ayat: 14, juz: 28 },
+      { no: 62, name: "Al-Jumu'ah", ayat: 11, juz: 28 },
+      { no: 63, name: "Al-Munafiqun", ayat: 11, juz: 28 },
+      { no: 64, name: "At-Taghabun", ayat: 18, juz: 28 },
+      { no: 65, name: "At-Talaq", ayat: 12, juz: 28 },
+      { no: 66, name: "At-Tahrim", ayat: 12, juz: 28 },
+      { no: 67, name: "Al-Mulk", ayat: 30, juz: 29 },
+      { no: 68, name: "Al-Qalam", ayat: 52, juz: 29 },
+      { no: 69, name: "Al-Haqqah", ayat: 52, juz: 29 },
+      { no: 70, name: "Al-Ma'arij", ayat: 44, juz: 29 },
+      { no: 71, name: "Nuh", ayat: 28, juz: 29 },
+      { no: 72, name: "Al-Jinn", ayat: 28, juz: 29 },
+      { no: 73, name: "Al-Muzzammil", ayat: 20, juz: 29 },
+      { no: 74, name: "Al-Muddassir", ayat: 56, juz: 29 },
+      { no: 75, name: "Al-Qiyamah", ayat: 40, juz: 29 },
+      { no: 76, name: "Al-Insan", ayat: 31, juz: 29 },
+      { no: 77, name: "Al-Mursalat", ayat: 50, juz: 29 },
+      { no: 78, name: "An-Naba'", ayat: 40, juz: 30 },
+      { no: 79, name: "An-Nazi'at", ayat: 46, juz: 30 },
+      { no: 80, name: "'Abasa", ayat: 42, juz: 30 },
+      { no: 81, name: "At-Takwir", ayat: 29, juz: 30 },
+      { no: 82, name: "Al-Infitar", ayat: 19, juz: 30 },
+      { no: 83, name: "Al-Mutaffifin", ayat: 36, juz: 30 },
+      { no: 84, name: "Al-Insyiqaq", ayat: 25, juz: 30 },
+      { no: 85, name: "Al-Buruj", ayat: 22, juz: 30 },
+      { no: 86, name: "At-Tariq", ayat: 17, juz: 30 },
+      { no: 87, name: "Al-A'la", ayat: 19, juz: 30 },
+      { no: 88, name: "Al-Ghasyiyah", ayat: 26, juz: 30 },
+      { no: 89, name: "Al-Fajr", ayat: 30, juz: 30 },
+      { no: 90, name: "Al-Balad", ayat: 20, juz: 30 },
+      { no: 91, name: "Asy-Syams", ayat: 15, juz: 30 },
+      { no: 92, name: "Al-Lail", ayat: 21, juz: 30 },
+      { no: 93, name: "Ad-Duha", ayat: 11, juz: 30 },
+      { no: 94, name: "Asy-Syarh", ayat: 8, juz: 30 },
+      { no: 95, name: "At-Tin", ayat: 8, juz: 30 },
+      { no: 96, name: "Al-'Alaq", ayat: 19, juz: 30 },
+      { no: 97, name: "Al-Qadr", ayat: 5, juz: 30 },
+      { no: 98, name: "Al-Bayyinah", ayat: 8, juz: 30 },
+      { no: 99, name: "Az-Zalzalah", ayat: 8, juz: 30 },
+      { no: 100, name: "Al-'Adiyat", ayat: 11, juz: 30 },
+      { no: 101, name: "Al-Qari'ah", ayat: 11, juz: 30 },
+      { no: 102, name: "At-Takasur", ayat: 8, juz: 30 },
+      { no: 103, name: "Al-'Asr", ayat: 3, juz: 30 },
+      { no: 104, name: "Al-Humazah", ayat: 9, juz: 30 },
+      { no: 105, name: "Al-Fil", ayat: 5, juz: 30 },
+      { no: 106, name: "Quraisy", ayat: 4, juz: 30 },
+      { no: 107, name: "Al-Ma'un", ayat: 7, juz: 30 },
+      { no: 108, name: "Al-Kausar", ayat: 3, juz: 30 },
+      { no: 109, name: "Al-Kafirun", ayat: 6, juz: 30 },
+      { no: 110, name: "An-Nasr", ayat: 3, juz: 30 },
+      { no: 111, name: "Al-Lahab", ayat: 5, juz: 30 },
+      { no: 112, name: "Al-Ikhlas", ayat: 4, juz: 30 },
+      { no: 113, name: "Al-Falaq", ayat: 5, juz: 30 },
+      { no: 114, name: "An-Nas", ayat: 6, juz: 30 }
+    ];
+
+    // Surat Autocomplete Handling
+    function handleSuratInput(val) {
+      const dd = document.getElementById('surat-dropdown');
+      const listEl = document.getElementById('surat-dropdown-list');
+      const clearBtn = document.getElementById('surat-clear-btn');
+      
+      const q = (val || '').toLowerCase().trim();
+      clearBtn.classList.toggle('hidden', !q);
+
+      const filtered = SURAT_LIST.filter(s => 
+        s.name.toLowerCase().includes(q) || String(s.no) === q
+      );
+
+      if (!filtered.length) {
+        listEl.innerHTML = '<div class="p-3 text-center text-xs text-gray-400">Surat tidak ditemukan</div>';
+        dd.classList.remove('hidden');
+        return;
+      }
+
+      listEl.innerHTML = filtered.slice(0, 15).map(s => `
+        <div class="surat-option" onclick="selectSurat(${s.no}, '${s.name}', ${s.juz}, ${s.ayat})">
+          <span class="surat-no">${s.no}</span>
+          <div class="surat-name">${s.name}</div>
+          <span class="surat-meta">Juz ${s.juz} · ${s.ayat} ayat</span>
+        </div>
+      `).join('');
+      dd.classList.remove('hidden');
+    }
+
+    function selectSurat(no, name, juz, ayat) {
+      document.getElementById('surat-input-display').value = `${no}. ${name}`;
+      document.getElementById('surat-value').value = name;
+      document.getElementById('input-juz').value = juz;
+      document.getElementById('surat-dropdown').classList.add('hidden');
+      document.getElementById('surat-clear-btn').classList.remove('hidden');
+      updatePoinPreview();
+    }
+
+    function clearSuratInput() {
+      document.getElementById('surat-input-display').value = '';
+      document.getElementById('surat-value').value = '';
+      document.getElementById('surat-clear-btn').classList.add('hidden');
+      document.getElementById('surat-dropdown').classList.add('hidden');
+      updatePoinPreview();
+    }
+
+    function filterSuratByJuz(juz) {
+      if (!juz) return;
+      const found = SURAT_LIST.find(s => s.juz == juz);
+      if (found && !document.getElementById('surat-value').value) {
+        selectSurat(found.no, found.name, found.juz, found.ayat);
+      }
+    }
+
+    function handleSuratKeydown(e) {
+      if (e.key === 'Escape') {
+        document.getElementById('surat-dropdown').classList.add('hidden');
+      }
+    }
+
+    document.addEventListener('click', (e) => {
+      if (!e.target.closest('#surat-input-display') && !e.target.closest('#surat-dropdown')) {
+        document.getElementById('surat-dropdown')?.classList.add('hidden');
+      }
+    });
+
+    // ═══════════════════════════════════════════════════════
+    // 3. APP STATE & INITIALIZATION
+    // ═══════════════════════════════════════════════════════
+    let appState = {
+      token:    localStorage.getItem('app_token')    || null,
+      role:     localStorage.getItem('app_role')     || '',
+      username: localStorage.getItem('app_username') || '',
+      nama:     localStorage.getItem('app_nama')     || '',
+      nisn:     localStorage.getItem('app_nisn')     || '',
+      kelas:    localStorage.getItem('app_kelas')    || '',
+      data:     null,
+      siswaList: []
+    };
+
+    document.addEventListener('DOMContentLoaded', () => {
+      const nowStr = new Date().toLocaleDateString('id-ID', { weekday:'long', year:'numeric', month:'long', day:'numeric' });
+      document.getElementById('date-display').innerText = nowStr;
+      if (document.getElementById('date-display-sub')) document.getElementById('date-display-sub').innerText = nowStr;
+
+      restoreSidebarState();
+      refreshPenilaianSelects();
+
+      setInterval(() => {
+        const el = document.getElementById('input-time-display');
+        if (el) el.innerText = new Date().toLocaleTimeString('id-ID', { hour:'2-digit', minute:'2-digit', second:'2-digit' });
+      }, 1000);
+
+      // Register PWA Service Worker if available
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('./sw.js').catch(err => console.log('SW registration error:', err));
+      }
+
+      if (appState.token) {
+        if (appState.nama) setupUserUI({ nama: appState.nama, role: appState.role, username: appState.username });
+        loadDashboard();
+      } else {
+        document.getElementById('view-login').classList.remove('hidden');
+        document.getElementById('view-dashboard').classList.add('hidden');
+      }
+    });
+
+    function showLoading(show, text = 'Memproses...') {
+      const el = document.getElementById('loading');
+      document.getElementById('loading-text').innerText = text;
+      el.classList.toggle('hidden', !show);
+    }
+
+    function showToast(msg, type='success') {
+      const container = document.getElementById('toast-container');
+      const div = document.createElement('div');
+      const colors = {
+        success: 'bg-blue-700 border-blue-600',
+        error:   'bg-red-600 border-red-500',
+        warning: 'bg-amber-500 border-amber-400'
+      }[type] || 'bg-blue-700 border-blue-600';
+
+      div.className = `${colors} text-white px-5 py-3.5 rounded-xl shadow-2xl flex items-center gap-3 min-w-[280px] border pointer-events-auto toast-enter`;
+      div.innerHTML = `<i class="fa-solid fa-circle-check text-lg flex-shrink-0"></i><span class="text-sm font-semibold">${msg}</span>`;
+      container.appendChild(div);
+
+      setTimeout(() => {
+        div.classList.remove('toast-enter');
+        div.classList.add('toast-leave');
+        setTimeout(() => div.remove(), 300);
+      }, 3200);
+    }
+
+    function togglePass(id) {
+      const el = document.getElementById(id);
+      el.type = el.type === 'password' ? 'text' : 'password';
+    }
+
+    let sidebarCollapsed = false;
+    function toggleSidebar() {
+      const sidebar  = document.getElementById('sidebar');
+      const overlay  = document.getElementById('sidebar-overlay');
+      const isMobile = window.innerWidth < 768;
+
+      if (isMobile) {
+        const isOpen = sidebar.classList.contains('mobile-open');
+        sidebar.classList.toggle('mobile-open', !isOpen);
+        overlay.classList.toggle('hidden', isOpen);
+      } else {
+        sidebarCollapsed = !sidebarCollapsed;
+        sidebar.classList.toggle('collapsed', sidebarCollapsed);
+        localStorage.setItem('sidebar_collapsed', sidebarCollapsed ? '1' : '0');
+      }
+    }
+
+    function restoreSidebarState() {
+      if (window.innerWidth >= 768 && localStorage.getItem('sidebar_collapsed') === '1') {
+        sidebarCollapsed = true;
+        document.getElementById('sidebar').classList.add('collapsed');
+      }
+    }
+
+    const PAGE_TITLES = {
+      'page-home':        'Dashboard',
+      'page-input':       'Input Setoran',
+      'page-penilaian':   'Kelola Penilaian',
+      'page-leaderboard': 'Leaderboard',
+      'page-profile':     'Pengaturan Akun',
+      'page-riwayat':     'Riwayat Setoran',
+      'page-users':       'Manajemen User',
+      'page-progress':    'Progress Siswa',
+      'page-laporan':     'Laporan Excel'
+    };
+
+    function showPage(pageId) {
+      document.querySelectorAll('.page-content').forEach(el => el.classList.add('hidden'));
+      document.getElementById(pageId).classList.remove('hidden');
+
+      document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+      const map = { 
+        'page-home':'nav-home', 'page-input':'nav-input', 'page-leaderboard':'nav-leaderboard', 
+        'page-profile':'nav-profile', 'page-penilaian':'nav-penilaian', 'page-riwayat':'nav-riwayat', 
+        'page-users':'nav-users', 'page-progress':'nav-progress', 'page-laporan':'nav-laporan'
+      };
+      if(map[pageId]) document.getElementById(map[pageId])?.classList.add('active');
+
+      const titleEl = document.getElementById('topnav-page-title');
+      if (titleEl) titleEl.innerText = PAGE_TITLES[pageId] || 'Tahfizh Pro';
+
+      if(pageId === 'page-leaderboard') loadLeaderboard();
+      if(pageId === 'page-penilaian')   renderPenilaianPage();
+      if(pageId === 'page-riwayat')     loadMySetoran();
+      if(pageId === 'page-users')       loadUsers();
+      if(pageId === 'page-progress')    loadProgress();
+      if(pageId === 'page-laporan')     initLaporanPage(); 
+
+      if (window.innerWidth < 768) {
+        document.getElementById('sidebar').classList.remove('mobile-open');
+        document.getElementById('sidebar-overlay').classList.add('hidden');
+      }
+      document.getElementById('main-scroll').scrollTop = 0;
+    }
+
+    // ═══════════════════════════════════════════════════════
+    // 4. AUTHENTICATION & LOGIN
+    // ═══════════════════════════════════════════════════════
+    function handleLogin(e) {
+      e.preventDefault();
+      showLoading(true, 'Memverifikasi akun...');
+      const u = document.getElementById('username').value.trim();
+      const p = document.getElementById('password').value.trim();
+
+      google.script.run
+        .withSuccessHandler(res => {
+          showLoading(false);
+          if (res && res.status === 'success') {
+            appState.token    = res.token;
+            appState.role     = res.role;
+            appState.nama     = res.nama;
+            appState.username = u;
+            appState.nisn     = res.nisn || '';
+            appState.kelas    = res.kelas || '';
+
+            localStorage.setItem('app_token',    res.token);
+            localStorage.setItem('app_role',     res.role);
+            localStorage.setItem('app_nama',     res.nama);
+            localStorage.setItem('app_username', u);
+            localStorage.setItem('app_nisn',     res.nisn || '');
+            localStorage.setItem('app_kelas',    res.kelas || '');
+
+            showToast('Selamat datang, ' + res.nama + '!', 'success');
+            setupUserUI(res);
+            loadDashboard();
+          } else {
+            showToast(res ? res.message : 'Username atau password salah', 'error');
+          }
+        })
+        .withFailureHandler(err => {
+          showLoading(false);
+          showToast('Error login: ' + err, 'error');
+        })
+        .loginUser(u, p);
+    }
+
+    function handleLogout() {
+      localStorage.removeItem('app_token');
+      localStorage.removeItem('app_role');
+      localStorage.removeItem('app_nama');
+      localStorage.removeItem('app_username');
+      localStorage.removeItem('app_nisn');
+      localStorage.removeItem('app_kelas');
+
+      appState = { token: null, role: '', username: '', nama: '', nisn: '', kelas: '', data: null, siswaList: [] };
+
+      document.getElementById('stats-container').innerHTML = '';
+      document.getElementById('recent-list').innerHTML = '';
+      document.getElementById('top-siswa-section').classList.add('hidden');
+      if (chartInstance) { chartInstance.destroy(); chartInstance = null; }
+
+      document.getElementById('view-login').classList.remove('hidden');
+      document.getElementById('view-dashboard').classList.add('hidden');
+    }
+
+    function setupUserUI(userData) {
+      const nama = userData.nama || 'User';
+      const role = userData.role || '';
+      const init = nama.charAt(0).toUpperCase();
+
+      document.getElementById('user-name-display').innerText = nama;
+      document.getElementById('user-role-display').innerText = role;
+      document.getElementById('user-initial').innerText      = init;
+      document.getElementById('topnav-user-name').innerText  = nama;
+      document.getElementById('topnav-user-role').innerText  = role;
+      document.getElementById('topnav-avatar').innerText     = init;
+      document.getElementById('profile-name').innerText     = nama;
+      document.getElementById('profile-role').innerText     = role;
+      document.getElementById('profile-avatar').innerText   = init;
+      document.getElementById('profile-username').innerText = userData.username || appState.username || '-';
+
+      document.getElementById('menu-guru').classList.toggle('hidden', role === 'siswa');
+      document.getElementById('menu-siswa').classList.toggle('hidden', role !== 'siswa');
+      document.getElementById('menu-admin').classList.toggle('hidden', role !== 'admin');
+    }
+
+    // ═══════════════════════════════════════════════════════
+    // 5. DASHBOARD & DATA LOADING
+    // ═══════════════════════════════════════════════════════
+    function loadDashboard() {
+      showLoading(true, 'Memuat dashboard...');
+      document.getElementById('view-login').classList.add('hidden');
+      document.getElementById('view-dashboard').classList.remove('hidden');
+
+      google.script.run
+        .withSuccessHandler(res => {
+          showLoading(false);
+          if (!res || !res.data) {
+            handleLogout();
+            return;
+          }
+          appState.data = res.data;
+          appState.role = res.role;
+          if (res.nama) { appState.nama = res.nama; localStorage.setItem('app_nama', res.nama); }
+          if (res.username) { appState.username = res.username; localStorage.setItem('app_username', res.username); }
+
+          if (res.role !== 'siswa') {
+            appState.siswaList = res.data.siswa_list || [];
+            populateSiswaSelect();
+            if (res.role === 'guru' && res.data.guru_kelas && res.data.guru_kelas !== '-') {
+              const badge = document.getElementById('kelas-badge');
+              document.getElementById('kelas-badge-text').innerText = 'Kelas ' + res.data.guru_kelas;
+              badge.classList.remove('hidden');
+              badge.classList.add('flex');
+            }
+          }
+
+          setupUserUI({ nama: appState.nama, role: res.role, username: appState.username });
+          renderStats(res.data, res.role);
+          if (res.data.recent_setoran) renderRecent(res.data.recent_setoran);
+          if (res.data.chart_data) renderChart(res.data.chart_data.labels, res.data.chart_data.data);
+          if (res.role !== 'siswa' && res.data.top_siswa) renderTopSiswa(res.data.top_siswa);
+          refreshPenilaianSelects();
+        })
+        .withFailureHandler(() => {
+          showLoading(false);
+          handleLogout();
+        })
+        .getData(appState.token);
+    }
+
+    function renderStats(data, role) {
+      const container = document.getElementById('stats-container');
+      let cards = [];
+      if (role === 'siswa') {
+        cards = [
+          { title:'Total Poin', value: data.total_poin || 0, icon:'fa-star', bg:'linear-gradient(135deg,#d97706,#f59e0b)', sub:'Poin terkumpul' },
+          { title:'Ranking Global', value:'#' + (data.global_rank || '-'), icon:'fa-trophy', bg:'linear-gradient(135deg,#2563eb,#3b82f6)', sub:'Dari seluruh santri' },
+          { title:'Badge', value: data.badge || 'Pemula', icon:'fa-medal', bg:'linear-gradient(135deg,#7c3aed,#a78bfa)', sub:'Pencapaian saat ini' },
+          { title:'Setoran', value: data.recent_setoran?.length || 0, icon:'fa-book-open', bg:'linear-gradient(135deg,#065f46,#10b981)', sub:'Catatan terbaru' }
+        ];
+      } else {
+        const topName = data.top_siswa?.length > 0 ? data.top_siswa[0].nama.split(' ')[0] : '-';
+        cards = [
+          { title:'Total Santri', value: data.total_siswa || 0, icon:'fa-users', bg:'linear-gradient(135deg,#1d4ed8,#3b82f6)', sub:'Santri terdaftar' },
+          { title:'Total Setoran', value: data.total_setoran || 0, icon:'fa-book-open', bg:'linear-gradient(135deg,#065f46,#10b981)', sub:'Hafalan tercatat' },
+          { title:'Santri Terbaik', value: topName, icon:'fa-crown', bg:'linear-gradient(135deg,#b45309,#d97706)', sub:'Peringkat 1 Poin' },
+          { title:'Tanggal', value: new Date().toLocaleDateString('id-ID',{day:'2-digit',month:'short'}), icon:'fa-calendar', bg:'linear-gradient(135deg,#0e7490,#0891b2)', sub:'Aktif hari ini' }
+        ];
+      }
+
+      container.innerHTML = cards.map(c => `
+        <div class="stat-card text-white" style="background:${c.bg};">
+          <div class="flex items-start justify-between mb-4">
+            <div class="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center">
+              <i class="fa-solid ${c.icon} text-lg"></i>
+            </div>
+          </div>
+          <div class="text-2xl font-bold mb-0.5">${c.value}</div>
+          <div class="text-white/80 text-xs font-medium">${c.title}</div>
+          <div class="text-white/50 text-[11px] mt-1">${c.sub}</div>
+        </div>
+      `).join('');
+    }
+
+    function renderRecent(list) {
+      const el = document.getElementById('recent-list');
+      if (!list.length) {
+        el.innerHTML = '<div class="text-center py-8 text-gray-300"><p class="text-sm">Belum ada setoran</p></div>';
+        return;
+      }
+      el.innerHTML = list.slice(0, 8).map(item => `
+        <div class="flex items-center gap-3 py-3 border-b border-gray-50 last:border-0 hover:bg-gray-50 rounded-lg px-2 transition">
+          <div class="w-9 h-9 rounded-xl bg-blue-100 text-blue-700 flex items-center justify-center text-sm font-bold flex-shrink-0">${item.nilai}</div>
+          <div class="flex-1 min-w-0">
+            <div class="font-semibold text-gray-800 text-sm truncate">${item.nama}</div>
+            <div class="text-xs text-gray-400">Juz ${item.juz} · ${item.surat}</div>
+          </div>
+          <div class="text-right flex-shrink-0">
+            <div class="text-blue-600 font-bold text-sm">+${item.poin}</div>
+            <div class="text-[10px] text-gray-400">${item.tanggal}</div>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    function renderTopSiswa(top) {
+      const section = document.getElementById('top-siswa-section');
+      const list = document.getElementById('top-siswa-list');
+      if (!top || !top.length) return;
+      section.classList.remove('hidden');
+
+      const medals = ['🥇','🥈','🥉','4️⃣','5️⃣'];
+      list.innerHTML = top.map((s, i) => `
+        <div class="rounded-xl border p-4 text-center bg-white shadow-sm hover:shadow-md transition">
+          <div class="text-2xl mb-2">${medals[i]}</div>
+          <div class="w-10 h-10 rounded-full bg-blue-600 text-white font-bold text-sm flex items-center justify-center mx-auto mb-2">${s.nama.charAt(0)}</div>
+          <div class="font-bold text-gray-800 text-sm truncate">${s.nama.split(' ')[0]}</div>
+          <div class="text-xs text-gray-500">${s.kelas}</div>
+          <div class="mt-2 font-bold text-blue-600 text-sm">${s.poin} poin</div>
+          <div class="text-[10px] text-gray-400">${s.badge}</div>
+        </div>
+      `).join('');
+    }
+
+    function populateSiswaSelect() {
+      const sel = document.getElementById('input-siswa');
+      sel.innerHTML = '<option value="">— Cari &amp; Pilih Nama Siswa —</option>';
+      (appState.siswaList || []).forEach(s => {
+        const opt = document.createElement('option');
+        opt.value = s.nisn;
+        opt.setAttribute('data-nama', s.nama);
+        opt.setAttribute('data-kelas', s.kelas);
+        opt.textContent = `${s.nama} (${s.kelas})`;
+        sel.appendChild(opt);
+      });
+    }
+
+    // ═══════════════════════════════════════════════════════
+    // 6. INPUT SETORAN & POINT ESTIMATION
+    // ═══════════════════════════════════════════════════════
+    function updatePoinPreview() {
+      const kelVal = document.getElementById('select-kelancaran')?.value;
+      const nilVal = document.getElementById('select-nilai')?.value;
+      const pData = loadPenilaianData();
+
+      const kelObj = pData.kelancaran.find(k => k.nama === kelVal);
+      const nilObj = pData.nilai.find(n => n.kode === nilVal);
+
+      const kPoin = kelObj ? kelObj.poin : 0;
+      const nPoin = nilObj ? nilObj.poin : 0;
+      const total = kPoin + nPoin;
+
+      const txtEl = document.getElementById('poin-preview-text');
+      if (txtEl) {
+        txtEl.innerHTML = `Estimasi Poin: <strong>+${total} Poin</strong> (${nilVal || 'Nilai'}: ${nPoin} + ${kelVal || 'Kelancaran'}: +${kPoin})`;
+      }
+    }
+
+    function handleSubmitSetoran(e) {
+      e.preventDefault();
+      const selectSiswa = document.getElementById('input-siswa');
+      const selectedOpt = selectSiswa.options[selectSiswa.selectedIndex];
+      if (!selectSiswa.value) { showToast('Pilih siswa terlebih dahulu!', 'warning'); return; }
+
+      const suratVal = document.getElementById('surat-value').value || document.getElementById('surat-input-display').value;
+      if (!suratVal) { showToast('Pilih nama surat Al-Qur\'an!', 'warning'); return; }
+
+      const formData = {
+        nisn: selectSiswa.value,
+        nama_siswa: selectedOpt.getAttribute('data-nama'),
+        kelas: selectedOpt.getAttribute('data-kelas'),
+        juz: e.target.juz.value,
+        surat: suratVal,
+        ayat_dari: e.target.ayat_dari.value,
+        ayat_sampai: e.target.ayat_sampai.value,
+        status: e.target.status.value,
+        nilai: e.target.nilai.value,
+        catatan: e.target.catatan.value
+      };
+
+      showLoading(true, 'Menyimpan setoran...');
+      google.script.run
+        .withSuccessHandler(res => {
+          showLoading(false);
+          if (res && res.status === 'success') {
+            showToast(res.message, 'success');
+            e.target.reset();
+            clearSuratInput();
+            confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 } });
+          } else {
+            showToast(res ? res.message : 'Gagal menyimpan', 'error');
+          }
+        })
+        .withFailureHandler(err => {
+          showLoading(false);
+          showToast('Error: ' + err, 'error');
+        })
+        .addSetoran(appState.token, formData);
+    }
+
+    // ═══════════════════════════════════════════════════════
+    // 7. KELOLA PENILAIAN LOGIC
+    // ═══════════════════════════════════════════════════════
+    const PENILAIAN_KEY = 'tahfizh_penilaian_v1';
+    const DEFAULT_KELANCARAN = [
+      { id: 'kel-1', nama: 'Sangat Lancar', poin: 40, icon: '🔵' },
+      { id: 'kel-2', nama: 'Lancar',        poin: 30, icon: '🟢' },
+      { id: 'kel-3', nama: 'Cukup Lancar',  poin: 20, icon: '🟡' },
+      { id: 'kel-4', nama: 'Belum Lancar',  poin: 10, icon: '🔴' }
+    ];
+
+    const DEFAULT_NILAI = [
+      { id: 'nil-1', kode: 'A',  desc: 'Mumtaaz',         poin: 60, icon: '⭐' },
+      { id: 'nil-2', kode: 'A-', desc: 'Jayyid Jiddan',    poin: 55, icon: '✅' },
+      { id: 'nil-3', kode: 'B+', desc: 'Jayyid',           poin: 50, icon: '📌' },
+      { id: 'nil-4', kode: 'B',  desc: 'Jayyid',           poin: 45, icon: '🎯' },
+      { id: 'nil-5', kode: 'B-', desc: 'Maqbul',           poin: 40, icon: '💎' },
+      { id: 'nil-6', kode: 'C+', desc: 'Maqbul',           poin: 35, icon: '🏅' },
+      { id: 'nil-7', kode: 'C',  desc: 'Perlu Bimbingan',   poin: 30, icon: '📘' }
+    ];
+
+    function loadPenilaianData() {
+      try {
+        const saved = localStorage.getItem(PENILAIAN_KEY);
+        if (saved) return JSON.parse(saved);
+      } catch(e) {}
+      return { kelancaran: DEFAULT_KELANCARAN, nilai: DEFAULT_NILAI };
+    }
+
+    function savePenilaianData(data) {
+      localStorage.setItem(PENILAIAN_KEY, JSON.stringify(data));
+      refreshPenilaianSelects();
+    }
+
+    function refreshPenilaianSelects() {
+      const data = loadPenilaianData();
+      const kelOptions = data.kelancaran.map(k => `<option value="${k.nama}">${k.icon} ${k.nama} (+${k.poin} Poin)</option>`).join('');
+      const nilOptions = data.nilai.map(n => `<option value="${n.kode}">${n.icon} ${n.kode} — ${n.desc} (${n.poin} Poin)</option>`).join('');
+
+      ['select-kelancaran'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.innerHTML = kelOptions;
+      });
+      ['select-nilai'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.innerHTML = nilOptions;
+      });
+      updatePoinPreview();
+    }
+
+    function renderPenilaianPage() {
+      const data = loadPenilaianData();
+      const elK = document.getElementById('list-kelancaran');
+      const elN = document.getElementById('list-nilai');
+
+      document.getElementById('badge-kelancaran').innerText = `${data.kelancaran.length} item`;
+      document.getElementById('badge-nilai').innerText = `${data.nilai.length} item`;
+
+      elK.innerHTML = data.kelancaran.map((k, i) => `
+        <div class="flex items-center justify-between bg-gray-50 p-3 rounded-xl border border-gray-100">
+          <div class="flex items-center gap-3">
+            <span class="text-xl">${k.icon}</span>
+            <div>
+              <div class="font-bold text-sm text-gray-800">${k.nama}</div>
+              <div class="text-xs text-blue-600 font-semibold">+${k.poin} poin</div>
+            </div>
+          </div>
+          <button onclick="deleteKelancaran(${i})" class="text-red-400 hover:text-red-600 p-1"><i class="fa-solid fa-trash"></i></button>
+        </div>
+      `).join('');
+
+      elN.innerHTML = data.nilai.map((n, i) => `
+        <div class="flex items-center justify-between bg-amber-50/50 p-3 rounded-xl border border-amber-100">
+          <div class="flex items-center gap-3">
+            <span class="w-8 h-8 rounded-lg bg-amber-500 text-white font-bold flex items-center justify-center text-sm">${n.kode}</span>
+            <div>
+              <div class="font-bold text-sm text-gray-800">${n.desc}</div>
+              <div class="text-xs text-amber-700 font-semibold">${n.poin} poin</div>
+            </div>
+          </div>
+          <button onclick="deleteNilai(${i})" class="text-red-400 hover:text-red-600 p-1"><i class="fa-solid fa-trash"></i></button>
+        </div>
+      `).join('');
+    }
+
+    function addKelancaran() {
+      const nama = document.getElementById('add-kel-nama').value.trim();
+      const poin = parseInt(document.getElementById('add-kel-poin').value) || 0;
+      const icon = document.getElementById('add-kel-icon').value;
+      if (!nama) return showToast('Isi nama kelancaran', 'warning');
+
+      const data = loadPenilaianData();
+      data.kelancaran.push({ id: 'kel-' + Date.now(), nama, poin, icon });
+      savePenilaianData(data);
+      renderPenilaianPage();
+      showToast('Kriteria kelancaran ditambah', 'success');
+    }
+
+    function deleteKelancaran(i) {
+      const data = loadPenilaianData();
+      data.kelancaran.splice(i, 1);
+      savePenilaianData(data);
+      renderPenilaianPage();
+    }
+
+    function addNilai() {
+      const kode = document.getElementById('add-nil-kode').value.trim();
+      const desc = document.getElementById('add-nil-desc').value.trim();
+      const poin = parseInt(document.getElementById('add-nil-poin').value) || 0;
+      if (!kode || !desc) return showToast('Isi kode & deskripsi nilai', 'warning');
+
+      const data = loadPenilaianData();
+      data.nilai.push({ id: 'nil-' + Date.now(), kode, desc, poin, icon: '⭐' });
+      savePenilaianData(data);
+      renderPenilaianPage();
+      showToast('Kriteria nilai ditambah', 'success');
+    }
+
+    function deleteNilai(i) {
+      const data = loadPenilaianData();
+      data.nilai.splice(i, 1);
+      savePenilaianData(data);
+      renderPenilaianPage();
+    }
+
+    function resetPenilaianToDefault() {
+      if (!confirm('Reset kriteria penilaian ke default?')) return;
+      localStorage.removeItem(PENILAIAN_KEY);
+      renderPenilaianPage();
+      refreshPenilaianSelects();
+      showToast('Penilaian direset ke default', 'success');
+    }
+
+    // ═══════════════════════════════════════════════════════
+    // 8. PROGRESS SISWA & DRAWER
+    // ═══════════════════════════════════════════════════════
+    let progressData = [];
+    let progressCurrentPage = 1;
+    let drawerChart = null;
+
+    function loadProgress() {
+      const cards = document.getElementById('progress-cards');
+      cards.innerHTML = '<div class="col-span-full text-center py-16"><div class="loader mx-auto mb-3"></div><p class="text-sm text-gray-400">Memuat data siswa…</p></div>';
+
+      google.script.run
+        .withSuccessHandler(res => {
+          progressData = res || [];
+          buildProgressKelasFilter();
+          renderProgressCards();
+        })
+        .withFailureHandler(err => {
+          cards.innerHTML = `<div class="col-span-full text-center py-16 text-red-500">${err}</div>`;
+        })
+        .getSiswaProgress(appState.token);
+    }
+
+    function buildProgressKelasFilter() {
+      const sel = document.getElementById('progress-filter-kelas');
+      const list = [...new Set(progressData.map(s => s.kelas))].sort();
+      sel.innerHTML = '<option value="">Semua Kelas</option>' + list.map(k => `<option value="${k}">${k}</option>`).join('');
+    }
+
+    function renderProgressCards() {
+      const container = document.getElementById('progress-cards');
+      const q = (document.getElementById('progress-search')?.value || '').toLowerCase();
+      const kFilter = document.getElementById('progress-filter-kelas')?.value || '';
+
+      const filtered = progressData.filter(s => 
+        (!q || s.nama.toLowerCase().includes(q) || s.nisn.includes(q)) &&
+        (!kFilter || s.kelas === kFilter)
+      );
+
+      if (!filtered.length) {
+        container.innerHTML = '<div class="col-span-full text-center py-16 text-gray-400">Tidak ada santri ditemukan</div>';
+        return;
+      }
+
+      container.innerHTML = filtered.map(s => `
+        <div class="page-card p-5 cursor-pointer hover:shadow-lg transition" onclick="openProgressDrawer('${s.nisn}')">
+          <div class="flex items-center justify-between mb-3">
+            <div class="flex items-center gap-3">
+              <div class="w-10 h-10 rounded-xl bg-blue-600 text-white font-bold flex items-center justify-center">${s.nama.charAt(0)}</div>
+              <div>
+                <h4 class="font-bold text-gray-900 text-sm">${s.nama}</h4>
+                <span class="text-xs bg-blue-50 text-blue-700 px-2 py-0.5 rounded-full font-semibold">${s.kelas}</span>
+              </div>
+            </div>
+            <div class="text-right">
+              <div class="font-bold text-blue-600 text-base">${s.poin}</div>
+              <div class="text-[10px] text-gray-400">poin</div>
+            </div>
+          </div>
+          <div class="text-xs text-amber-600 font-semibold mb-2">${s.badge}</div>
+          <div class="flex justify-between text-xs text-gray-400 pt-2 border-t border-gray-50">
+            <span>Setoran: <strong>${s.jumlah_setoran}</strong></span>
+            <span>Terakhir: <strong>${s.last_setoran || '-'}</strong></span>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    function openProgressDrawer(nisn) {
+      const s = progressData.find(x => String(x.nisn) === String(nisn));
+      if (!s) return;
+
+      document.getElementById('drawer-avatar').innerText = s.nama.charAt(0);
+      document.getElementById('drawer-nama').innerText = s.nama;
+      document.getElementById('drawer-kelas').innerText = `Kelas ${s.kelas} · NISN: ${s.nisn}`;
+      document.getElementById('drawer-poin').innerText = s.poin;
+      document.getElementById('drawer-setoran-count').innerText = s.jumlah_setoran;
+      document.getElementById('drawer-badge').innerText = s.badge;
+
+      const bar = document.getElementById('drawer-progress-bar');
+      const pct = Math.min(Math.round((s.poin / 2000) * 100), 100);
+      bar.style.width = pct + '%';
+      document.getElementById('drawer-progress-label').innerText = `${pct}% ke level berikutnya`;
+
+      const ctx = document.getElementById('drawer-chart').getContext('2d');
+      if (drawerChart) drawerChart.destroy();
+      const pts = s.setoran.slice(-7);
+      drawerChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: pts.length ? pts.map(p => p.tanggal) : ['Belum ada'],
+          datasets: [{
+            label: 'Poin',
+            data: pts.length ? pts.map(p => p.poin) : [0],
+            borderColor: '#1976D2',
+            tension: 0.3, fill: false
+          }]
+        },
+        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
+      });
+
+      const rList = document.getElementById('drawer-riwayat');
+      rList.innerHTML = s.setoran.length ? s.setoran.map(item => `
+        <div class="bg-gray-50 p-2.5 rounded-xl text-xs flex justify-between items-center border border-gray-100">
+          <div>
+            <div class="font-bold text-gray-800">Juz ${item.juz} · ${item.surat} (${item.ayat})</div>
+            <div class="text-gray-400">${item.tanggal} · ${item.status}</div>
+          </div>
+          <span class="font-bold text-blue-600">+${item.poin} pt</span>
+        </div>
+      `).join('') : '<p class="text-xs text-gray-400">Belum ada setoran tercatat</p>';
+
+      document.getElementById('progress-drawer').classList.add('open');
+      document.getElementById('drawer-overlay').classList.add('open');
+    }
+
+    function closeProgressDrawer() {
+      document.getElementById('progress-drawer').classList.remove('open');
+      document.getElementById('drawer-overlay').classList.remove('open');
+    }
+
+    // ═══════════════════════════════════════════════════════
+    // 9. LEADERBOARD & RIWAYAT SISWA
+    // ═══════════════════════════════════════════════════════
+    let allLeaderboard = [];
+    function loadLeaderboard() {
+      const tbody = document.getElementById('leaderboard-body');
+      tbody.innerHTML = '<tr><td colspan="5" class="text-center py-8 text-gray-400"><div class="loader mx-auto mb-2"></div>Memuat...</td></tr>';
+
+      google.script.run
+        .withSuccessHandler(res => {
+          allLeaderboard = res || [];
+          const kSet = [...new Set(allLeaderboard.map(s => s.kelas))].sort();
+          document.getElementById('lb-filter-kelas').innerHTML = '<option value="">Semua Kelas</option>' + kSet.map(k => `<option value="${k}">${k}</option>`).join('');
+          filterLeaderboard();
+        })
+        .getLeaderboardData();
+    }
+
+    function filterLeaderboard() {
+      const q = (document.getElementById('lb-search')?.value || '').toLowerCase();
+      const kFilter = document.getElementById('lb-filter-kelas')?.value || '';
+
+      const filtered = allLeaderboard.filter(s => 
+        (!q || s.nama.toLowerCase().includes(q) || s.kelas.toLowerCase().includes(q)) &&
+        (!kFilter || s.kelas === kFilter)
+      );
+
+      const top3 = filtered.slice(0, 3);
+      const podium = document.getElementById('podium-section');
+      const conf = [
+        { rank: '🥇', bg: 'from-amber-100 to-yellow-200 border-amber-400' },
+        { rank: '🥈', bg: 'from-slate-100 to-gray-200 border-slate-400' },
+        { rank: '🥉', bg: 'from-orange-100 to-amber-200 border-orange-400' }
+      ];
+      podium.innerHTML = top3.map((s, i) => `
+        <div class="page-card bg-gradient-to-br ${conf[i].bg} border p-4 text-center">
+          <div class="text-3xl mb-1">${conf[i].rank}</div>
+          <div class="font-bold text-sm text-gray-800 truncate">${s.nama}</div>
+          <div class="text-xs text-gray-600">${s.kelas}</div>
+          <div class="mt-2 font-bold text-blue-700 text-sm">${s.poin} Poin</div>
+        </div>
+      `).join('');
+
+      const tbody = document.getElementById('leaderboard-body');
+      tbody.innerHTML = filtered.map((s, i) => `
+        <tr>
+          <td class="text-center font-bold">${i + 1}</td>
+          <td class="font-semibold">${s.nama}</td>
+          <td><span class="badge bg-blue-50 text-blue-700">${s.kelas}</span></td>
+          <td class="text-center"><span class="badge bg-amber-50 text-amber-700">${s.badge}</span></td>
+          <td class="text-right font-bold text-blue-600 pr-6">${s.poin}</td>
+        </tr>
+      `).join('');
+    }
+
+    function loadMySetoran() {
+      const tbody = document.getElementById('riwayat-body');
+      tbody.innerHTML = '<tr><td colspan="7" class="text-center py-8 text-gray-400"><div class="loader mx-auto mb-2"></div>Memuat riwayat...</td></tr>';
+
+      google.script.run
+        .withSuccessHandler(res => {
+          const list = res || [];
+          tbody.innerHTML = list.length ? list.map(item => `
+            <tr>
+              <td class="text-xs text-gray-500">${item.tanggal}</td>
+              <td class="font-semibold text-gray-800">Juz ${item.juz} · ${item.surat}</td>
+              <td class="hidden sm:table-cell text-xs">${item.ayat}</td>
+              <td class="text-center font-bold text-blue-700">${item.nilai}</td>
+              <td class="hidden md:table-cell text-xs text-gray-500">${item.status}</td>
+              <td class="hidden md:table-cell text-xs text-gray-400">${item.guru || '-'}</td>
+              <td class="text-right pr-5 font-bold text-blue-600">+${item.poin}</td>
+            </tr>
+          `).join('') : '<tr><td colspan="7" class="text-center py-6 text-gray-400">Belum ada riwayat setoran</td></tr>';
+        })
+        .getMySetoran(appState.token);
+    }
+
+    // ═══════════════════════════════════════════════════════
+    // 10. USER MANAGEMENT & KELAS (ADMIN)
+    // ═══════════════════════════════════════════════════════
+    let usersData = { guru: [], siswa: [] };
+    let currentUserTab = 'guru';
+    let editingUserId = null;
+
+    function loadUsers() {
+      google.script.run
+        .withSuccessHandler(res => {
+          usersData = res || { guru: [], siswa: [] };
+          renderUsersTable();
+        })
+        .getUsers(appState.token);
+    }
+
+    function switchUserTab(tab) {
+      currentUserTab = tab;
+      document.getElementById('user-table-section').classList.toggle('hidden', tab === 'kelas');
+      document.getElementById('kelas-panel').classList.toggle('hidden', tab !== 'kelas');
+      if (tab === 'kelas') loadKelasList();
+      else renderUsersTable();
+    }
+
+    function renderUsersTable() {
+      const tbody = document.getElementById('users-tbody');
+      const list = usersData[currentUserTab] || [];
+      const q = (document.getElementById('users-search')?.value || '').toLowerCase();
+      const filtered = list.filter(u => !q || u.nama.toLowerCase().includes(q) || u.username.includes(q));
+
+      tbody.innerHTML = filtered.map(u => `
+        <tr>
+          <td class="font-semibold text-gray-800">${u.nama}</td>
+          <td class="font-mono text-xs">${u.username || u.nisn || '-'}</td>
+          <td><span class="badge bg-blue-50 text-blue-700">${u.kelas || '-'}</span></td>
+          <td class="text-center capitalize text-xs">${u.role}</td>
+          <td class="text-center">
+            <button onclick="deleteUser('${u.id}', '${u.nama}')" class="text-red-500 hover:text-red-700 p-1"><i class="fa-solid fa-trash"></i></button>
+          </td>
+        </tr>
+      `).join('');
+    }
+
+    function openUserModal() {
+      document.getElementById('modal-user').classList.remove('hidden');
+      document.getElementById('modal-user').classList.add('flex');
+    }
+
+    function closeUserModal() {
+      document.getElementById('modal-user').classList.add('hidden');
+      document.getElementById('modal-user').classList.remove('flex');
+    }
+
+    function selectModalRole(role) {
+      document.getElementById('modal-role').value = role;
+      document.getElementById('modal-field-nip').classList.toggle('hidden', role === 'siswa');
+      document.getElementById('modal-fields-siswa').classList.toggle('hidden', role !== 'siswa');
+      document.getElementById('modal-field-kelas-guru').classList.toggle('hidden', role === 'siswa');
+    }
+
+    function submitUserForm() {
+      const role = document.getElementById('modal-role').value;
+      const nama = document.getElementById('modal-nama').value.trim();
+      const password = document.getElementById('modal-password').value;
+      if (!nama || !password) return showToast('Nama & Password wajib diisi', 'warning');
+
+      const payload = { role, nama, password };
+      if (role === 'siswa') {
+        payload.nisn = document.getElementById('modal-nisn').value.trim();
+        payload.kelas = document.getElementById('modal-kelas-siswa').value;
+        payload.target = document.getElementById('modal-target-juz').value;
+      } else {
+        payload.username = document.getElementById('modal-username').value.trim();
+        payload.kelas = document.getElementById('modal-kelas-guru').value.trim();
+      }
+
+      showLoading(true, 'Menyimpan user...');
+      google.script.run
+        .withSuccessHandler(res => {
+          showLoading(false);
+          if (res && res.status === 'success') {
+            showToast('User berhasil dibuat', 'success');
+            closeUserModal();
+            loadUsers();
+          } else {
+            showToast(res ? res.message : 'Gagal simpan', 'error');
+          }
+        })
+        .saveUser(appState.token, payload);
+    }
+
+    function deleteUser(id, nama) {
+      if (!confirm(`Hapus user ${nama}?`)) return;
+      showLoading(true);
+      google.script.run
+        .withSuccessHandler(() => { showLoading(false); loadUsers(); showToast('User dihapus', 'success'); })
+        .deleteUser(appState.token, id);
+    }
+
+    function loadKelasList() {
+      google.script.run
+        .withSuccessHandler(res => {
+          const list = res || [];
+          document.getElementById('kelas-list').innerHTML = list.map(k => `
+            <div class="flex justify-between items-center bg-gray-50 p-3 rounded-xl border border-gray-100">
+              <span class="font-bold text-sm text-gray-800">${k.nama}</span>
+              <button onclick="deleteKelas('${k.id}', '${k.nama}')" class="text-red-400 hover:text-red-600"><i class="fa-solid fa-trash"></i></button>
+            </div>
+          `).join('');
+
+          document.getElementById('modal-kelas-siswa').innerHTML = '<option value="">Pilih Kelas</option>' + list.map(k => `<option value="${k.nama}">${k.nama}</option>`).join('');
+        })
+        .getKelas(appState.token);
+    }
+
+    function submitKelas() {
+      const nama = document.getElementById('input-kelas-baru').value.trim();
+      if (!nama) return showToast('Isi nama kelas', 'warning');
+      google.script.run
+        .withSuccessHandler(() => { loadKelasList(); document.getElementById('input-kelas-baru').value = ''; showToast('Kelas ditambah', 'success'); })
+        .saveKelas(appState.token, nama);
+    }
+
+    function deleteKelas(id, nama) {
+      if (!confirm(`Hapus kelas ${nama}?`)) return;
+      google.script.run
+        .withSuccessHandler(() => { loadKelasList(); showToast('Kelas dihapus', 'success'); })
+        .deleteKelas(appState.token, id);
+    }
+
+    // ═══════════════════════════════════════════════════════
+    // 11. LAPORAN EXCEL (SHEETJS EXPORT)
+    // ═══════════════════════════════════════════════════════
+    function initLaporanPage() {
+      const sel = document.getElementById('laporan-filter-kelas');
+      sel.innerHTML = '<option value="semua">Semua Kelas</option>';
+      const list = [...new Set((appState.siswaList || []).map(s => s.kelas))].sort();
+      list.forEach(k => {
+        const opt = document.createElement('option');
+        opt.value = k; opt.textContent = 'Kelas ' + k;
+        sel.appendChild(opt);
+      });
+    }
+
+    function handleDownloadLaporan() {
+      const filterKelas = document.getElementById('laporan-filter-kelas').value;
+      const jenis = document.getElementById('laporan-jenis').value;
+      const btn = document.getElementById('btn-download-laporan');
+
+      btn.disabled = true;
+      btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Menyiapkan...';
+
+      google.script.run
+        .withSuccessHandler(res => {
+          btn.disabled = false;
+          btn.innerHTML = '<i class="fa-solid fa-file-excel"></i> Download Excel (.xlsx)';
+          generateExcel(res, jenis);
+        })
+        .withFailureHandler(err => {
+          btn.disabled = false;
+          btn.innerHTML = '<i class="fa-solid fa-file-excel"></i> Download Excel (.xlsx)';
+          showToast('Gagal memuat data: ' + err, 'error');
+        })
+        .getLaporanData(appState.token, filterKelas);
+    }
+
+    function generateExcel(res, jenis) {
+      if (!res || !res.siswa) return showToast('Data laporan kosong', 'warning');
+      const wb = XLSX.utils.book_new();
+
+      const rekapHeader = ['No','NISN','Nama Siswa','Kelas','Total Setoran','Nilai A','Total Poin','Badge','Ranking Kelas','Ranking Global'];
+      const rekapRows = res.siswa.map((s, i) => [
+        i + 1, s.nisn, s.nama, s.kelas, s.setoran.length,
+        s.setoran.filter(x => x.nilai === 'A').length, s.total_poin, s.badge, s.ranking_kelas, s.ranking_global
+      ]);
+      const wsRekap = XLSX.utils.aoa_to_sheet([rekapHeader, ...rekapRows]);
+      XLSX.utils.book_append_sheet(wb, wsRekap, 'Rekap Siswa');
+
+      const fileName = `Laporan_Tahfizh_${new Date().toISOString().slice(0,10)}.xlsx`;
+      XLSX.writeFile(wb, fileName);
+      showToast('Laporan Excel berhasil diunduh!', 'success');
+    }
+
+    // ═══════════════════════════════════════════════════════
+    // 12. ENDPOINT CONFIGURATION & TEST
+    // ═══════════════════════════════════════════════════════
+    function openEndpointModal() {
+      document.getElementById('cfg-gas-url').value = getApiEndpoint();
+      document.getElementById('modal-endpoint').classList.remove('hidden');
+      document.getElementById('modal-endpoint').classList.add('flex');
+    }
+
+    function closeEndpointModal() {
+      document.getElementById('modal-endpoint').classList.add('hidden');
+      document.getElementById('modal-endpoint').classList.remove('flex');
+    }
+
+    async function testGasEndpoint() {
+      const url = document.getElementById('cfg-gas-url').value.trim();
+      const resEl = document.getElementById('endpoint-test-result');
+      resEl.className = 'text-xs p-3 rounded-lg bg-blue-50 text-blue-700';
+      resEl.innerText = 'Menguji koneksi ke server Google Apps Script...';
+      resEl.classList.remove('hidden');
+
+      try {
+        const res = await fetch(url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+          body: JSON.stringify({ action: 'getLeaderboardData', params: [] })
+        });
+        const json = await res.json();
+        resEl.className = 'text-xs p-3 rounded-lg bg-emerald-50 text-emerald-700 border border-emerald-200';
+        resEl.innerHTML = '<strong>✅ Koneksi Berhasil!</strong> Server GAS merespons data dengan baik.';
+      } catch(err) {
+        resEl.className = 'text-xs p-3 rounded-lg bg-rose-50 text-rose-700 border border-rose-200';
+        resEl.innerHTML = `<strong>❌ Gagal Terhubung:</strong> ${err.message}. Pastikan deployment GAS di-set <em>Who has access: Anyone</em>.`;
+      }
+    }
+
+    function saveGasEndpoint() {
+      const url = document.getElementById('cfg-gas-url').value.trim();
+      if (!url) return showToast('URL tidak boleh kosong', 'warning');
+      localStorage.setItem('tahfizh_gas_endpoint', url);
+      showToast('URL Server GAS berhasil disimpan!', 'success');
+      closeEndpointModal();
+    }
+
+    // ═══════════════════════════════════════════════════════
+    // 13. PASSWORD & CHART UTILITIES
+    // ═══════════════════════════════════════════════════════
+    function handlePasswordChange(e) {
+      e.preventDefault();
+      const oldP = document.getElementById('oldPass').value;
+      const newP = document.getElementById('newPass').value;
+      const confP = document.getElementById('confPass').value;
+      if (newP !== confP) return showToast('Konfirmasi password tidak sama', 'warning');
+
+      showLoading(true, 'Mengubah password...');
+      google.script.run
+        .withSuccessHandler(res => {
+          showLoading(false);
+          if (res && res.status === 'success') {
+            showToast('Password berhasil diubah!', 'success');
+            e.target.reset();
+          } else {
+            showToast(res ? res.message : 'Password lama salah', 'error');
+          }
+        })
+        .changePassword(appState.token, oldP, newP);
+    }
+
+    function checkPasswordStrength(val) {
+      let s = 0;
+      if (val.length >= 6) s++;
+      if (val.length >= 10) s++;
+      if (/[A-Z]/.test(val) && /[0-9]/.test(val)) s++;
+      const colors = ['bg-red-400', 'bg-yellow-400', 'bg-blue-500'];
+      ['sb1','sb2','sb3','sb4'].forEach((id, i) => {
+        document.getElementById(id).className = 'h-1 flex-1 rounded-full ' + (i < s ? colors[s-1] || 'bg-blue-500' : 'bg-gray-200');
+      });
+    }
+
+    let chartInstance = null;
+    function renderChart(labels, data) {
+      const ctx = document.getElementById('chartProgres').getContext('2d');
+      if (chartInstance) chartInstance.destroy();
+      chartInstance = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: labels.length ? labels : ['Belum ada data'],
+          datasets: [{
+            label: 'Poin',
+            data: data.length ? data : [0],
+            borderColor: '#1976D2',
+            backgroundColor: 'rgba(25, 118, 210, 0.1)',
+            tension: 0.3, fill: true
+          }]
+        },
+        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
+      });
+    }
+  </script>
 </body>
 </html>

@@ -1,74 +1,53 @@
-const CACHE_NAME = 'tahfizh-pwa-v16';
-const ASSETS = [
+const CACHE_NAME = 'tahfizh-pro-v1';
+const ASSETS_TO_CACHE = [
   './',
   './index.html',
   './manifest.json',
-  './app.js',
-  './style.css',
-  './icons/icon-192.png',
-  './icons/icon-512.png'
+  'https://cdn.tailwindcss.com',
+  'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css',
+  'https://cdn.jsdelivr.net/npm/chart.js',
+  'https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js',
+  'https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js'
 ];
 
-// Install Event
 self.addEventListener('install', (event) => {
-  console.log('[SW] Installing new version:', CACHE_NAME);
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
-      return cache.addAll(ASSETS).catch(err => {
-        console.warn('[SW] Caching warning:', err);
-      });
-    }).then(() => self.skipWaiting())
+      return cache.addAll(ASSETS_TO_CACHE).catch(() => {});
+    })
   );
+  self.skipWaiting();
 });
 
-// Activate Event
 self.addEventListener('activate', (event) => {
-  console.log('[SW] Activating new version:', CACHE_NAME);
   event.waitUntil(
     caches.keys().then((keys) => {
       return Promise.all(
         keys.map((key) => {
           if (key !== CACHE_NAME) {
-            console.log('[SW] Purging old cache:', key);
             return caches.delete(key);
           }
         })
       );
-    }).then(() => self.clients.claim())
-  );
-});
-
-// Fetch Event
-self.addEventListener('fetch', (event) => {
-  const requestUrl = new URL(event.request.url);
-
-  // Jika request API GAS atau HTML utama, gunakan Network First agar selalu dapat versi terbaru
-  if (requestUrl.hostname.includes('script.google.com') || event.request.mode === 'navigate' || requestUrl.pathname.endsWith('index.html')) {
-    event.respondWith(
-      fetch(event.request)
-        .then(response => {
-          const clonedResponse = response.clone();
-          caches.open(CACHE_NAME).then(cache => cache.put(event.request, clonedResponse));
-          return response;
-        })
-        .catch(() => caches.match(event.request))
-    );
-    return;
-  }
-
-  // Untuk aset lokal statis lainnya (CSS, JS, Icons)
-  event.respondWith(
-    caches.match(event.request).then((cachedResponse) => {
-      return cachedResponse || fetch(event.request).then((networkResponse) => {
-        if (!networkResponse || networkResponse.status !== 200 || networkResponse.type !== 'basic') {
-          return networkResponse;
-        }
-        const responseToCache = networkResponse.clone();
-        caches.open(CACHE_NAME).then((cache) => {
-          cache.put(event.request, responseToCache);
-        });
-        return networkResponse;
-      });
     })
   );
+  self.clients.claim();
+});
+
+self.addEventListener('fetch', (event) => {
+  // Hanya cache GET requests ke aset statis
+  if (event.request.method === 'GET') {
+    event.respondWith(
+      caches.match(event.request).then((cachedResponse) => {
+        return (
+          cachedResponse ||
+          fetch(event.request).catch(() => {
+            if (event.request.headers.get('accept')?.includes('text/html')) {
+              return caches.match('./index.html');
+            }
+          })
+        );
+      })
+    );
+  }
 });
