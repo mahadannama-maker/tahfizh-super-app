@@ -314,17 +314,6 @@
         </div>
       </div>
 
-      <!-- Endpoint Status Banner -->
-      <div id="endpoint-warning-banner" class="mb-5 p-3 rounded-xl bg-amber-50 border border-amber-200 text-amber-800 text-xs hidden">
-        <div class="flex items-start gap-2">
-          <i class="fa-solid fa-triangle-exclamation text-amber-600 mt-0.5 flex-shrink-0"></i>
-          <div>
-            <strong>Server Belum Dikonfigurasi!</strong>
-            <p class="mt-0.5 text-amber-700">Pastikan Anda sudah menempelkan URL Web App Google Apps Script Anda pada tombol <em>Endpoint GAS</em> di bawah.</p>
-          </div>
-        </div>
-      </div>
-
       <form onsubmit="handleLogin(event)" class="space-y-4">
         <div>
           <label>Username / NIP / NISN</label>
@@ -1144,7 +1133,7 @@
     // ═══════════════════════════════════════════════════════
     // 1. UNIVERSAL API BRIDGE (GOOGLE.SCRIPT.RUN COMPATIBILITY)
     // ═══════════════════════════════════════════════════════
-    const DEFAULT_GAS_URL = 'https://script.google.com/macros/s/AKfycbzBX4FNtnFGpKECkVQMb3RT6rWepef5Y-L_xtDLz3WDbYa_EIfC2tmNnKudwy9bEXiPTA/exec';
+    const DEFAULT_GAS_URL = 'https://script.google.com/macros/s/AKfycbxbsw18EFULmVdtE7ubyPd5RG0emHvg3c69TeFZnl2l3380kAhyskGUvrs3NOhHhj0org/exec';
 
     function getApiEndpoint() {
       return localStorage.getItem('tahfizh_gas_endpoint') || DEFAULT_GAS_URL;
@@ -1405,17 +1394,9 @@
       restoreSidebarState();
       refreshPenilaianSelects();
 
-      // Check if custom GAS endpoint is configured
-      const hasCustomEndpoint = Boolean(localStorage.getItem('tahfizh_gas_endpoint'));
-      const warningBanner = document.getElementById('endpoint-warning-banner');
+      // Status indicator
       const gasDot = document.getElementById('gas-status-dot');
-      if (!hasCustomEndpoint) {
-        if (warningBanner) warningBanner.classList.remove('hidden');
-        if (gasDot) { gasDot.classList.remove('bg-emerald-500'); gasDot.classList.add('bg-amber-500'); }
-      } else {
-        if (warningBanner) warningBanner.classList.add('hidden');
-        if (gasDot) { gasDot.classList.remove('bg-amber-500'); gasDot.classList.add('bg-emerald-500'); }
-      }
+      if (gasDot) { gasDot.classList.remove('bg-amber-500'); gasDot.classList.add('bg-emerald-500'); }
 
       setInterval(() => {
         const el = document.getElementById('input-time-display');
@@ -1536,12 +1517,6 @@
     // ═══════════════════════════════════════════════════════
     function handleLogin(e) {
       e.preventDefault();
-
-      if (!localStorage.getItem('tahfizh_gas_endpoint')) {
-        showToast('Silakan konfigurasikan URL Server GAS terlebih dahulu!', 'warning');
-        openEndpointModal();
-        return;
-      }
 
       showLoading(true, 'Memverifikasi akun...');
       const u = document.getElementById('username').value.trim();
