@@ -48,8 +48,11 @@ const MOCK_SETORAN = [
 ];
 
 // --- App State ---
+const DEFAULT_ENDPOINT = 'https://script.google.com/macros/s/AKfycbxbsw18EFULmVdtE7ubyPd5RG0emHvg3c69TeFZnl2l3380kAhyskGUvrs3NOhHhj0org/exec';
+const savedEndpoint = localStorage.getItem('tahfizh_gas_endpoint');
+
 const state = {
-  endpoint: localStorage.getItem('tahfizh_gas_endpoint') || 'https://script.google.com/macros/s/AKfycbxbsw18EFULmVdtE7ubyPd5RG0emHvg3c69TeFZnl2l3380kAhyskGUvrs3NOhHhj0org/exec',
+  endpoint: (savedEndpoint && savedEndpoint.trim() !== '') ? savedEndpoint : DEFAULT_ENDPOINT,
   santri: [...MOCK_SANTRI],
   setoran: [...MOCK_SETORAN],
   currentTab: 'dashboard',
