@@ -49,7 +49,7 @@ const MOCK_SETORAN = [
 
 // --- App State ---
 const state = {
-  endpoint: localStorage.getItem('tahfizh_gas_endpoint') || '',
+  endpoint: localStorage.getItem('tahfizh_gas_endpoint') || 'https://script.google.com/macros/s/AKfycbxbsw18EFULmVdtE7ubyPd5RG0emHvg3c69TeFZnl2l3380kAhyskGUvrs3NOhHhj0org/exec',
   santri: [...MOCK_SANTRI],
   setoran: [...MOCK_SETORAN],
   currentTab: 'dashboard',
