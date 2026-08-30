@@ -1,4 +1,4 @@
-const CACHE_NAME = 'tahfizh-pwa-v13';
+const CACHE_NAME = 'tahfizh-pwa-v14';
 const ASSETS = [
   './',
   './index.html',

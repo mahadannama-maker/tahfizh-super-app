@@ -114,25 +114,20 @@ function handleLogin(e) {
 
   // 1. Cari user di state.users
   let foundUser = state.users.find(u => 
-    String(u.nip_nisn).toLowerCase() === username || 
-    String(u.nama).toLowerCase() === username ||
-    String(u.id).toLowerCase() === username
+    String(u.nip_nisn || '').toLowerCase() === username || 
+    String(u.nama || '').toLowerCase() === username ||
+    String(u.id || '').toLowerCase() === username
   );
 
-  // 2. Jika tidak ditemukan di data GAS, jalankan fallback
+  // Jika tidak ditemukan di database Sheet users
   if (!foundUser) {
-    if (username === 'admin' || username === 'super admin') {
-      foundUser = { id: 'USR-001', nama: 'Super Admin', nip_nisn: 'admin', password: '123456', role: 'admin', kelas: '-' };
-    } else if (username.startsWith('u.') || username.includes('guru') || username === '121212') {
-      foundUser = { id: 'USR-041', nama: username, nip_nisn: username, password: '123456', role: 'guru', kelas: 'Halaqah Ust' };
-    } else {
-      // anggap santri
-      foundUser = { id: 'USR-024', nama: username, nip_nisn: username, password: '123456', role: 'siswa', kelas: 'Halaqah Ust' };
-    }
+    showToast('Username / NIP / NISN tidak terdaftar!', true);
+    return;
   }
 
   // Verification Password
-  if (foundUser.password && String(foundUser.password) !== password && password !== '123456') {
+  const userPassword = String(foundUser.password || '123456').trim();
+  if (password !== userPassword && password !== '123456') {
     showToast('Password yang Anda masukkan salah!', true);
     return;
   }
