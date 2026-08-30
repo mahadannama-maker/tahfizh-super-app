@@ -250,7 +250,8 @@ async function fetchGasData() {
   updateSyncBadge('Menghubungkan...', 'bg-blue-100 text-blue-800 animate-pulse');
 
   try {
-    const res = await fetch(state.endpoint);
+    const apiUrl = state.endpoint + (state.endpoint.includes('?') ? '&api=true' : '?api=true');
+    const res = await fetch(apiUrl);
     const data = await res.json();
 
     if (data.status === 'success') {

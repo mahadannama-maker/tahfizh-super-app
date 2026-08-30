@@ -32,6 +32,45 @@ function getUsersSheet(ss) {
 }
 
 function doGet(e) {
+  // Jika dibuka langsung lewat browser tanpa parameter API, alihkan langsung ke PWA resmi!
+  const isApiRequest = e && e.parameter && (e.parameter.api === 'true' || e.parameter.json === 'true' || e.parameter.format === 'json');
+  
+  if (!isApiRequest) {
+    const htmlRedirect = `
+      <!DOCTYPE html>
+      <html lang="id">
+      <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Membuka Tahfizh Super App...</title>
+        <style>
+          body { font-family: system-ui, -apple-system, sans-serif; display: flex; flex-direction: column; items-align: center; justify-content: center; min-height: 100vh; margin: 0; background: #0f766e; color: white; text-align: center; padding: 20px; }
+          .card { background: rgba(255,255,255,0.15); backdrop-filter: blur(10px); border-radius: 20px; padding: 30px; border: 1px solid rgba(255,255,255,0.2); max-width: 380px; margin: auto; }
+          h2 { margin-top: 10px; font-size: 20px; }
+          p { font-size: 13px; opacity: 0.9; }
+          a { display: inline-block; margin-top: 15px; background: white; color: #0f766e; text-decoration: none; padding: 12px 24px; border-radius: 12px; font-weight: bold; font-size: 13px; }
+        </style>
+        <script>
+          setTimeout(function() {
+            window.location.href = "https://mahadannama-maker.github.io/tahfizh-super-app/";
+          }, 300);
+        </script>
+      </head>
+      <body>
+        <div class="card">
+          <div style="font-size: 48px;">📖</div>
+          <h2>Tahfizh Super App</h2>
+          <p>Mohon tunggu sebentar, Anda sedang dialihkan ke aplikasi PWA resmi...</p>
+          <a href="https://mahadannama-maker.github.io/tahfizh-super-app/">Buka Aplikasi Sekarang &rarr;</a>
+        </div>
+      </body>
+      </html>
+    `;
+    return HtmlService.createHtmlOutput(htmlRedirect)
+      .setTitle("Tahfizh Super App")
+      .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
+  }
+
   try {
     const ss = SpreadsheetApp.getActiveSpreadsheet();
     
