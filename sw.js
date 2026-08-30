@@ -1,4 +1,4 @@
-const CACHE_NAME = 'tahfizh-pwa-v2';
+const CACHE_NAME = 'tahfizh-pwa-v5';
 const ASSETS = [
   './',
   './index.html',
@@ -11,11 +11,11 @@ const ASSETS = [
 
 // Install Event
 self.addEventListener('install', (event) => {
+  console.log('[SW] Installing new version:', CACHE_NAME);
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
-      console.log('[SW] Caching app shell assets');
       return cache.addAll(ASSETS).catch(err => {
-        console.warn('[SW] Caching warning (some non-critical assets skipped):', err);
+        console.warn('[SW] Caching warning:', err);
       });
     }).then(() => self.skipWaiting())
   );
@@ -23,12 +23,13 @@ self.addEventListener('install', (event) => {
 
 // Activate Event
 self.addEventListener('activate', (event) => {
+  console.log('[SW] Activating new version:', CACHE_NAME);
   event.waitUntil(
     caches.keys().then((keys) => {
       return Promise.all(
         keys.map((key) => {
           if (key !== CACHE_NAME) {
-            console.log('[SW] Removing old cache:', key);
+            console.log('[SW] Purging old cache:', key);
             return caches.delete(key);
           }
         })
@@ -37,31 +38,28 @@ self.addEventListener('activate', (event) => {
   );
 });
 
-// Fetch Event (Network First with Cache Fallback for API, Cache First for Shell)
+// Fetch Event
 self.addEventListener('fetch', (event) => {
   const requestUrl = new URL(event.request.url);
 
-  // Jika request ke Google Apps Script (API), gunakan Network First
-  if (requestUrl.hostname.includes('script.google.com')) {
+  // Jika request API GAS atau HTML utama, gunakan Network First agar selalu dapat versi terbaru
+  if (requestUrl.hostname.includes('script.google.com') || event.request.mode === 'navigate' || requestUrl.pathname.endsWith('index.html')) {
     event.respondWith(
       fetch(event.request)
-        .catch(() => {
-          return new Response(JSON.stringify({
-            status: 'offline',
-            message: 'Anda sedang offline. Menampilkan data lokal yang tersimpan.'
-          }), { headers: { 'Content-Type': 'application/json' } });
+        .then(response => {
+          const clonedResponse = response.clone();
+          caches.open(CACHE_NAME).then(cache => cache.put(event.request, clonedResponse));
+          return response;
         })
+        .catch(() => caches.match(event.request))
     );
     return;
   }
 
-  // Untuk aset lokal statis, gunakan Cache First with Network Fallback
+  // Untuk aset lokal statis lainnya (CSS, JS, Icons)
   event.respondWith(
     caches.match(event.request).then((cachedResponse) => {
-      if (cachedResponse) {
-        return cachedResponse;
-      }
-      return fetch(event.request).then((networkResponse) => {
+      return cachedResponse || fetch(event.request).then((networkResponse) => {
         if (!networkResponse || networkResponse.status !== 200 || networkResponse.type !== 'basic') {
           return networkResponse;
         }
